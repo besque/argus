@@ -20,8 +20,11 @@ export default {
       backdropBlur: {
         xs: '2px',
       },
+      // Added: Overriding the default 'sans' font stack to prioritize Helvetica
+      fontFamily: {
+        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+      },
     },
   },
   plugins: [],
 }
-
