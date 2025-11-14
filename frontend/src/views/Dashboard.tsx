@@ -91,7 +91,8 @@ const Dashboard = React.memo(() => {
       initial={{ width: 0 }}
       animate={{ width: `${riskBreakdown.high}%` }}
       transition={{ duration: 1, delay: 0.2 }}
-      className="h-full bg-gradient-to-r from-red-600 to-red-400 shadow-lg shadow-red-500/50"
+      // Changed from 'bg-gradient-to-r from-red-600 to-red-400' to solid 'bg-red-500'
+      className="h-full bg-red-500 shadow-lg shadow-red-500/50"
       style={{ minWidth: riskBreakdown.high > 0 ? '5px' : '0' }}
     />
     {/* Medium Risk Segment (Yellow) */}
@@ -99,7 +100,8 @@ const Dashboard = React.memo(() => {
       initial={{ width: 0 }}
       animate={{ width: `${riskBreakdown.medium}%` }}
       transition={{ duration: 1, delay: 0.4 }}
-      className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 shadow-lg shadow-yellow-500/50"
+      // Changed from 'bg-gradient-to-r from-yellow-600 to-yellow-400' to solid 'bg-yellow-500'
+      className="h-full bg-yellow-500 shadow-lg shadow-yellow-500/50"
       style={{ minWidth: riskBreakdown.medium > 0 ? '5px' : '0' }}
     />
     {/* Low Risk Segment (Green) */}
@@ -107,7 +109,8 @@ const Dashboard = React.memo(() => {
       initial={{ width: 0 }}
       animate={{ width: `${riskBreakdown.low}%` }}
       transition={{ duration: 1, delay: 0.6 }}
-      className="h-full bg-gradient-to-r from-green-600 to-green-400 shadow-lg shadow-green-500/50"
+      // Changed from 'bg-gradient-to-r from-green-600 to-green-400' to solid 'bg-green-500'
+      className="h-full bg-green-500 shadow-lg shadow-green-500/50"
       style={{ minWidth: riskBreakdown.low > 0 ? '5px' : '0' }}
     />
   </div>
@@ -177,16 +180,16 @@ const Dashboard = React.memo(() => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold text-white">
-                      {user.avatar}
+                    <div className="w-10 h-10 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-white">
+                      {user.avatar} 
                     </div>
                     <div>
                       <p className="font-semibold text-white">{user.name}</p>
                       <p className="text-xs text-gray-400">{user.department}</p>
                     </div>
                   </div>
-                  <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)} ${getRiskGlow(user.riskScore)}`}>
-                    {user.riskScore}
+                  <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
+                    {user.riskScore} 
                   </div>
                 </div>
               </motion.div>
