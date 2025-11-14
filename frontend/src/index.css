@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-900 text-gray-100;
+    /* Use Tailwind's font-sans (Montserrat via tailwind.config) */
+    @apply font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background: rgba(17, 24, 39, 0.6);
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-hover {
+    @apply glass;
+    transition: all 0.3s ease;
+  }
+
+  .glass-hover:hover {
+    border-color: rgba(0, 240, 255, 0.5);
+  }
+
+  .neon-text {
+  }
+
+  .neon-glow {
+  }
+}
