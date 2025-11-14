@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Header from './components/Layout/Header';
+import AmbientParticles from './components/Layout/AmbientParticles';
 import FloatingNav from './components/Layout/FloatingNav';
 import Dashboard from './views/Dashboard';
 import UserDetails from './views/Users/UserDetails';
@@ -52,6 +53,7 @@ function App() {
 
   return (
     <div className="min-h-screen">
+      <AmbientParticles />
       <Header />
       <FloatingNav 
         activeTab={activeTab === 'user-profile' ? 'users' : activeTab} 
