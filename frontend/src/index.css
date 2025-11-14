@@ -5,9 +5,8 @@
 @layer base {
   body {
     @apply bg-gray-900 text-gray-100;
-    /* Font family changed to prioritize Helvetica, as requested */
-    font-family: 'Helvetica Neue', 'Helvetica', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', sans-serif;
+    /* Use Tailwind's font-sans (Montserrat via tailwind.config) */
+    @apply font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

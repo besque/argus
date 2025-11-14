@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+import defaultTheme from 'tailwindcss/defaultTheme';
 export default {
   content: [
     "./index.html",
@@ -20,9 +21,9 @@ export default {
       backdropBlur: {
         xs: '2px',
       },
-      // Added: Overriding the default 'sans' font stack to prioritize Helvetica
+      // Overriding the default 'sans' font stack to use Parkinsans
       fontFamily: {
-        sans: ['Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        'sans': ['Parkinsans', ...defaultTheme.fontFamily.sans],
       },
     },
   },
