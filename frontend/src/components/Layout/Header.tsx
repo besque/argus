@@ -6,7 +6,15 @@ const Header = React.memo(() => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 glass border-b border-gray-300/20">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-center">
+      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="argus-logo"
+        >
+          ARGUS
+        </motion.div>
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
