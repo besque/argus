@@ -1,0 +1,15 @@
+{
+  "ts":"2025-01-17T11:03:15Z",
+  "user":"U0000",
+  "type":"AUTH",
+  "action":"login",
+  "device":"WIN10-43",
+  "recent_sequence":"LOGIN -> FILE_ACCESS -> FILE_ACCESS -> EMAIL_SEND -> FILE_ACCESS",
+  "logon_count":2.0,
+  "failed_login_count":0,
+  "file_access_count":9,
+  "total_bytes_out":728089,
+  "large_upload_count":0,
+  "total_file_size":1197806,
+  "scripting_tool_count":0
+}
