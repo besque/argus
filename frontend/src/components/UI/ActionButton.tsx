@@ -23,8 +23,8 @@ const ActionButton = React.memo<ActionButtonProps>(({
         px-6 py-3 rounded-lg font-semibold
         transition-all duration-300
         ${variant === 'primary' 
-          ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30 hover:neon-glow' 
-          : 'bg-red-500/20 text-red-400 border border-red-500/50 hover:bg-red-500/30 hover:shadow-lg hover:shadow-red-500/50'
+          ? 'bg-cyan-500/20 text-black border border-cyan-500/50 hover:bg-cyan-500/30 hover:neon-glow' 
+          : 'bg-red-500/20 text-black border border-red-500/50 hover:bg-red-500/30 hover:shadow-lg hover:shadow-red-500/50'
         }
         ${className}
       `}

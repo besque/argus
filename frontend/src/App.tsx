@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Header from './components/Layout/Header';
 import FloatingNav from './components/Layout/FloatingNav';
 import Dashboard from './views/Dashboard';
@@ -51,7 +51,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen">
       <Header />
       <FloatingNav 
         activeTab={activeTab === 'user-profile' ? 'users' : activeTab} 

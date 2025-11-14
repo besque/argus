@@ -22,7 +22,7 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
     <div className="pt-32 pb-12 px-6 max-w-7xl mx-auto space-y-8">
       {/* Top 5 Horizontal Strip */}
       <div>
-        <h2 className="text-2xl font-bold mb-6 text-cyan-400 neon-text">Top 5 Users</h2>
+        <h2 className="text-2xl font-bold mb-6 text-black neon-text">Top 5 Users</h2>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           {top5Users.map((user, index) => (
             <motion.div
@@ -37,15 +37,15 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
                 <div className="w-16 h-16 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold text-white text-xl mx-auto mb-3">
                   {user.avatar}
                 </div>
-                <p className="font-semibold text-white mb-1">{user.name}</p>
-                <p className="text-xs text-gray-400 mb-2">{user.jobTitle}</p>
+                <p className="font-semibold text-black mb-1">{user.name}</p>
+                <p className="text-xs text-black mb-2">{user.jobTitle}</p>
                 <div className={`text-2xl font-bold ${
                   user.riskScore >= 70 ? 'text-red-400' :
                   user.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'
                 }`}>
                   {user.riskScore}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Risk Score</p>
+                <p className="text-xs text-black mt-1">Risk Score</p>
               </GlassCard>
             </motion.div>
           ))}
@@ -54,7 +54,7 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
 
       {/* All Users Grid */}
       <div>
-        <h2 className="text-2xl font-bold mb-6 text-cyan-400 neon-text">All Users</h2>
+        <h2 className="text-2xl font-bold mb-6 text-black neon-text">All Users</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {allUsers.map((user, index) => (
             <motion.div
@@ -70,7 +70,7 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold text-white mx-auto mb-2">
                   {user.avatar}
                 </div>
-                <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                <p className="text-sm font-medium text-black truncate">{user.name}</p>
                 <p className={`text-xs mt-1 ${
                   user.riskScore >= 70 ? 'text-red-400' :
                   user.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'

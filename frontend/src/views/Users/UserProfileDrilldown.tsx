@@ -55,7 +55,7 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         onClick={onBack}
-        className="flex items-center space-x-2 text-cyan-400 hover:text-cyan-300 transition-colors"
+        className="flex items-center space-x-2 text-black hover:text-black transition-colors"
       >
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -71,14 +71,14 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
               {user.avatar}
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white mb-1">{user.name}</h2>
-              <p className="text-gray-400">{user.jobTitle} • {user.department}</p>
-              <p className="text-sm text-gray-500 mt-1">{user.email}</p>
+              <h2 className="text-3xl font-bold text-black mb-1">{user.name}</h2>
+              <p className="text-black">{user.jobTitle} • {user.department}</p>
+              <p className="text-sm text-black mt-1">{user.email}</p>
             </div>
           </div>
           <div className="flex items-center space-x-6">
             <div className="text-center">
-              <p className="text-gray-400 text-sm mb-1">Risk Score</p>
+              <p className="text-black text-sm mb-1">Risk Score</p>
               <p className={`text-4xl font-bold ${
                 user.riskScore >= 70 ? 'text-red-400' :
                 user.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'
@@ -101,17 +101,17 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Plain English Risk Box */}
         <GlassCard className="lg:col-span-1">
-          <h3 className="text-2xl font-bold mb-4 text-cyan-400 neon-text">
+          <h3 className="text-2xl font-bold mb-4 text-black neon-text">
             Why {user.name} is {user.status === 'high' ? 'Risky' : user.status === 'medium' ? 'Moderately Risky' : 'Low Risk'}
           </h3>
-          <p className="text-gray-300 leading-relaxed">
+          <p className="text-black leading-relaxed">
             {getRiskExplanation(user)}
           </p>
         </GlassCard>
 
         {/* Spider Chart */}
         <GlassCard className="lg:col-span-1">
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Risk Vectors</h3>
+          <h3 className="text-lg font-semibold mb-4 text-black">Risk Vectors</h3>
           <ResponsiveContainer width="100%" height={400}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="#374151" />
@@ -140,15 +140,15 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
 
       {/* User Logs */}
       <GlassCard>
-        <h3 className="text-lg font-semibold mb-4 text-cyan-400">Recent Activity Logs</h3>
+        <h3 className="text-lg font-semibold mb-4 text-black">Recent Activity Logs</h3>
         <div className="overflow-y-auto max-h-[400px]">
           <table className="w-full">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-2 px-3 text-sm text-gray-400">Timestamp</th>
-                <th className="text-left py-2 px-3 text-sm text-gray-400">Action</th>
-                <th className="text-left py-2 px-3 text-sm text-gray-400">Type</th>
-                <th className="text-left py-2 px-3 text-sm text-gray-400">Status</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Action</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Type</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -160,11 +160,11 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
                   transition={{ delay: index * 0.05 }}
                   className="border-b border-white/5 hover:bg-white/5 transition-colors"
                 >
-                  <td className="py-3 px-3 text-sm text-gray-300">
+                  <td className="py-3 px-3 text-sm text-black">
                     {new Date(activity.timestamp).toLocaleString()}
                   </td>
-                  <td className="py-3 px-3 text-sm text-white">{activity.action}</td>
-                  <td className="py-3 px-3 text-sm text-gray-300">{activity.type}</td>
+                  <td className="py-3 px-3 text-sm text-black">{activity.action}</td>
+                  <td className="py-3 px-3 text-sm text-black">{activity.type}</td>
                   <td className="py-3 px-3 text-sm">
                     <span
                       className={`px-2 py-1 rounded text-xs ${

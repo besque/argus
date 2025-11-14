@@ -16,7 +16,7 @@ const navItems = [
 const FloatingNav = React.memo<FloatingNavProps>(({ activeTab, onTabChange }) => {
   return (
     <nav className="fixed top-20 left-1/2 -translate-x-1/2 z-40 mt-4">
-      <div className="glass rounded-full px-6 py-3 flex items-center space-x-8 border border-white/10">
+      <div className="glass rounded-full px-6 py-3 flex items-center space-x-8 border border-gray-300/20">
         {navItems.map((item) => (
           <motion.button
             key={item.id}
@@ -24,8 +24,8 @@ const FloatingNav = React.memo<FloatingNavProps>(({ activeTab, onTabChange }) =>
             className={`
               relative px-4 py-2 font-medium transition-all duration-300
               ${activeTab === item.id
-                ? 'text-cyan-400 neon-text'
-                : 'text-gray-400 hover:text-gray-200'
+                ? 'text-black font-semibold'
+                : 'text-black hover:text-black'
               }
             `}
             whileHover={{ scale: 1.05 }}
@@ -35,7 +35,7 @@ const FloatingNav = React.memo<FloatingNavProps>(({ activeTab, onTabChange }) =>
             {activeTab === item.id && (
               <motion.div
                 layoutId="activeTab"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400 neon-glow rounded-full"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-gray-600 rounded-full"
                 initial={false}
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />

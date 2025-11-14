@@ -28,9 +28,9 @@ const Dashboard = React.memo(() => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="glass rounded-lg p-3 border border-white/10">
-          <p className="text-cyan-400 font-semibold">{payload[0].payload.timestamp}</p>
-          <p className="text-white">Risk Score: <span className="text-cyan-400">{payload[0].value}</span></p>
+        <div className="glass rounded-lg p-3 border border-gray-300/20">
+          <p className="text-black font-semibold">{payload[0].payload.timestamp}</p>
+          <p className="text-black">Risk Score: <span className="text-black font-semibold">{payload[0].value}</span></p>
         </div>
       );
     }
@@ -51,25 +51,92 @@ const Dashboard = React.memo(() => {
 
   return (
     <div className="pt-32 pb-12 px-6 max-w-7xl mx-auto space-y-8">
-      {/* KPI and Risk Breakdown */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <GlassCard className="lg:col-span-1" glow>
+      {/* New KPI Strip */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <GlassCard>
           <div className="text-center">
-            <p className="text-gray-400 text-sm mb-2">Total Anomalies</p>
+            <p className="text-black text-sm mb-2">Overall Risk Score</p>
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className="text-6xl font-bold neon-text text-cyan-400"
+              className="text-5xl font-bold text-black"
+            >
+              {/* Placeholder - will be replaced with dynamic data */}
+              --
+            </motion.div>
+            <p className="text-black text-xs mt-2">Company-level</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-black text-sm mb-2">Active Users</p>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
+              className="text-5xl font-bold text-black"
+            >
+              {/* Placeholder - will be replaced with dynamic data */}
+              --
+            </motion.div>
+            <p className="text-black text-xs mt-2">Currently active</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-black text-sm mb-2">Suspicious Users</p>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+              className="text-5xl font-bold text-black"
+            >
+              {/* Placeholder - will be replaced with dynamic data */}
+              --
+            </motion.div>
+            <p className="text-black text-xs mt-2">Flagged for review</p>
+          </div>
+        </GlassCard>
+
+        <GlassCard>
+          <div className="text-center">
+            <p className="text-black text-sm mb-2">Events Processed</p>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
+              className="text-5xl font-bold text-black"
+            >
+              {/* Placeholder - will be replaced with dynamic data */}
+              --
+            </motion.div>
+            <p className="text-black text-xs mt-2">Total events</p>
+          </div>
+        </GlassCard>
+      </div>
+
+      {/* KPI and Risk Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <GlassCard className="lg:col-span-1" glow>
+          <div className="text-center">
+            <p className="text-black text-sm mb-2">Total Anomalies</p>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+              className="text-6xl font-bold text-black"
             >
               {totalAnomalies}
             </motion.div>
-            <p className="text-gray-500 text-xs mt-2">Detected in last 24h</p>
+            <p className="text-black text-xs mt-2">Detected in last 24h</p>
           </div>
         </GlassCard>
 
 <GlassCard className="lg:col-span-2">
-  <h3 className="text-lg font-semibold mb-6 text-cyan-400">Risk Breakdown</h3>
+  <h3 className="text-lg font-semibold mb-6 text-black">Risk Breakdown</h3>
   
   {/* Percentages Above Bar */}
   <div className="flex w-full mb-1 text-sm font-bold">
@@ -85,7 +152,7 @@ const Dashboard = React.memo(() => {
   </div>
 
   {/* Combined Single Bar Display */}
-  <div className="h-4 rounded-full bg-gray-800 flex overflow-hidden">
+  <div className="h-4 rounded-full bg-gray-300/50 flex overflow-hidden">
     {/* High Risk Segment (Red) */}
     <motion.div
       initial={{ width: 0 }}
@@ -116,7 +183,7 @@ const Dashboard = React.memo(() => {
   </div>
   
   {/* Legend Below Bar */}
-  <div className="flex justify-start space-x-6 mt-4 text-xs text-gray-400">
+  <div className="flex justify-start space-x-6 mt-4 text-xs text-black">
     <div className="flex items-center space-x-1">
       <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
       <span>High Risk</span>
@@ -137,27 +204,27 @@ const Dashboard = React.memo(() => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Risk Timeline Graph */}
         <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Risk Timeline</h3>
+          <h3 className="text-lg font-semibold mb-4 text-black">Risk Timeline</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={riskTimelineData}>
               <defs>
                 <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00f0ff" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00f0ff" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#6b7280" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#6b7280" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
               <XAxis
                 dataKey="timestamp"
-                stroke="#9ca3af"
+                stroke="#6b7280"
                 tickFormatter={(value) => new Date(value).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
               />
-              <YAxis stroke="#9ca3af" domain={[0, 100]} />
+              <YAxis stroke="#6b7280" domain={[0, 100]} />
               <Tooltip content={<CustomTooltip />} />
               <Area
                 type="monotone"
                 dataKey="riskScore"
-                stroke="#00f0ff"
+                stroke="#6b7280"
                 strokeWidth={2}
                 fillOpacity={1}
                 fill="url(#colorRisk)"
@@ -168,7 +235,7 @@ const Dashboard = React.memo(() => {
 
         {/* Top 5 Risky Users */}
         <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Top 5 Risky Users</h3>
+          <h3 className="text-lg font-semibold mb-4 text-black">Top 5 Risky Users</h3>
           <div className="space-y-3">
             {topRiskyUsers.map((user, index) => (
               <motion.div
@@ -176,16 +243,16 @@ const Dashboard = React.memo(() => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="glass rounded-lg p-4 border border-white/10 hover:border-cyan-500/50 transition-all"
+                className="glass rounded-lg p-4 border border-gray-300/20 hover:border-gray-400/40 transition-all"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-white">
+                    <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center font-bold text-white">
                       {user.avatar} 
                     </div>
                     <div>
-                      <p className="font-semibold text-white">{user.name}</p>
-                      <p className="text-xs text-gray-400">{user.department}</p>
+                      <p className="font-semibold text-black">{user.name}</p>
+                      <p className="text-xs text-black">{user.department}</p>
                     </div>
                   </div>
                   <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
@@ -202,7 +269,7 @@ const Dashboard = React.memo(() => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Anomalies Donut Chart */}
         <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Anomaly Distribution</h3>
+          <h3 className="text-lg font-semibold mb-4 text-black">Anomaly Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -221,10 +288,10 @@ const Dashboard = React.memo(() => {
               </Pie>
               <Tooltip
                 contentStyle={{
-                  background: 'rgba(17, 24, 39, 0.8)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'rgba(245, 245, 240, 0.95)',
+                  border: '1px solid rgba(150, 150, 150, 0.3)',
                   borderRadius: '8px',
-                  color: '#fff',
+                  color: '#000000',
                 }}
               />
               <Legend />
@@ -234,15 +301,15 @@ const Dashboard = React.memo(() => {
 
         {/* Events Table */}
         <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Recent Events</h3>
+          <h3 className="text-lg font-semibold mb-4 text-black">Recent Events</h3>
           <div className="overflow-y-auto max-h-[300px]">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/10">
-                  <th className="text-left py-2 px-3 text-sm text-gray-400">Timestamp</th>
-                  <th className="text-left py-2 px-3 text-sm text-gray-400">User</th>
-                  <th className="text-left py-2 px-3 text-sm text-gray-400">Type</th>
-                  <th className="text-left py-2 px-3 text-sm text-gray-400">Status</th>
+                <tr className="border-b border-gray-300/20">
+                  <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">User</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Type</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,21 +318,21 @@ const Dashboard = React.memo(() => {
                     key={event.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="border-b border-white/5 hover:bg-white/5 transition-colors"
+                    className="border-b border-gray-300/10 hover:bg-gray-300/10 transition-colors"
                   >
-                    <td className="py-3 px-3 text-sm text-gray-300">
+                    <td className="py-3 px-3 text-sm text-black">
                       {new Date(event.timestamp).toLocaleString()}
                     </td>
-                    <td className="py-3 px-3 text-sm text-white">{event.user}</td>
-                    <td className="py-3 px-3 text-sm text-gray-300">{event.anomalyType}</td>
+                    <td className="py-3 px-3 text-sm text-black">{event.user}</td>
+                    <td className="py-3 px-3 text-sm text-black">{event.anomalyType}</td>
                     <td className="py-3 px-3 text-sm">
                       <span
                         className={`px-2 py-1 rounded text-xs ${
                           event.status === 'resolved'
-                            ? 'bg-green-500/20 text-green-400'
+                            ? 'text-green-400'
                             : event.status === 'escalated'
-                            ? 'bg-red-500/20 text-red-400'
-                            : 'bg-yellow-500/20 text-yellow-400'
+                            ? 'text-red-400'
+                            : 'text-yellow-400'
                         }`}
                       >
                         {event.status}
