@@ -1,4 +1,5 @@
 /** @type {import('tailwindcss').Config} */
+import defaultTheme from 'tailwindcss/defaultTheme';
 export default {
   content: [
     "./index.html",
@@ -20,8 +21,11 @@ export default {
       backdropBlur: {
         xs: '2px',
       },
+      // Overriding the default 'sans' font stack to use Parkinsans
+      fontFamily: {
+        'sans': ['Parkinsans', ...defaultTheme.fontFamily.sans],
+      },
     },
   },
   plugins: [],
 }
-

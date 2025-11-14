@@ -68,53 +68,69 @@ const Dashboard = React.memo(() => {
           </div>
         </GlassCard>
 
-        <GlassCard className="lg:col-span-2">
-          <h3 className="text-lg font-semibold mb-4 text-cyan-400">Risk Breakdown</h3>
-          <div className="space-y-3">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-red-400">High Risk</span>
-                <span className="text-white">{riskBreakdown.high}%</span>
-              </div>
-              <div className="h-3 rounded-full bg-gray-800 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${riskBreakdown.high}%` }}
-                  transition={{ duration: 1, delay: 0.2 }}
-                  className="h-full bg-gradient-to-r from-red-600 to-red-400 shadow-lg shadow-red-500/50"
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-yellow-400">Medium Risk</span>
-                <span className="text-white">{riskBreakdown.medium}%</span>
-              </div>
-              <div className="h-3 rounded-full bg-gray-800 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${riskBreakdown.medium}%` }}
-                  transition={{ duration: 1, delay: 0.4 }}
-                  className="h-full bg-gradient-to-r from-yellow-600 to-yellow-400 shadow-lg shadow-yellow-500/50"
-                />
-              </div>
-            </div>
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-green-400">Low Risk</span>
-                <span className="text-white">{riskBreakdown.low}%</span>
-              </div>
-              <div className="h-3 rounded-full bg-gray-800 overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${riskBreakdown.low}%` }}
-                  transition={{ duration: 1, delay: 0.6 }}
-                  className="h-full bg-gradient-to-r from-green-600 to-green-400 shadow-lg shadow-green-500/50"
-                />
-              </div>
-            </div>
-          </div>
-        </GlassCard>
+<GlassCard className="lg:col-span-2">
+  <h3 className="text-lg font-semibold mb-6 text-cyan-400">Risk Breakdown</h3>
+  
+  {/* Percentages Above Bar */}
+  <div className="flex w-full mb-1 text-sm font-bold">
+    <div className="text-red-400 text-center" style={{ width: `${riskBreakdown.high}%` }}>
+      {riskBreakdown.high > 0 ? `${riskBreakdown.high}%` : ''}
+    </div>
+    <div className="text-yellow-400 text-center" style={{ width: `${riskBreakdown.medium}%` }}>
+      {riskBreakdown.medium > 0 ? `${riskBreakdown.medium}%` : ''}
+    </div>
+    <div className="text-green-400 text-center" style={{ width: `${riskBreakdown.low}%` }}>
+      {riskBreakdown.low > 0 ? `${riskBreakdown.low}%` : ''}
+    </div>
+  </div>
+
+  {/* Combined Single Bar Display */}
+  <div className="h-4 rounded-full bg-gray-800 flex overflow-hidden">
+    {/* High Risk Segment (Red) */}
+    <motion.div
+      initial={{ width: 0 }}
+      animate={{ width: `${riskBreakdown.high}%` }}
+      transition={{ duration: 1, delay: 0.2 }}
+      // Changed from 'bg-gradient-to-r from-red-600 to-red-400' to solid 'bg-red-500'
+      className="h-full bg-red-500 shadow-lg shadow-red-500/50"
+      style={{ minWidth: riskBreakdown.high > 0 ? '5px' : '0' }}
+    />
+    {/* Medium Risk Segment (Yellow) */}
+    <motion.div
+      initial={{ width: 0 }}
+      animate={{ width: `${riskBreakdown.medium}%` }}
+      transition={{ duration: 1, delay: 0.4 }}
+      // Changed from 'bg-gradient-to-r from-yellow-600 to-yellow-400' to solid 'bg-yellow-500'
+      className="h-full bg-yellow-500 shadow-lg shadow-yellow-500/50"
+      style={{ minWidth: riskBreakdown.medium > 0 ? '5px' : '0' }}
+    />
+    {/* Low Risk Segment (Green) */}
+    <motion.div
+      initial={{ width: 0 }}
+      animate={{ width: `${riskBreakdown.low}%` }}
+      transition={{ duration: 1, delay: 0.6 }}
+      // Changed from 'bg-gradient-to-r from-green-600 to-green-400' to solid 'bg-green-500'
+      className="h-full bg-green-500 shadow-lg shadow-green-500/50"
+      style={{ minWidth: riskBreakdown.low > 0 ? '5px' : '0' }}
+    />
+  </div>
+  
+  {/* Legend Below Bar */}
+  <div className="flex justify-start space-x-6 mt-4 text-xs text-gray-400">
+    <div className="flex items-center space-x-1">
+      <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
+      <span>High Risk</span>
+    </div>
+    <div className="flex items-center space-x-1">
+      <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block" />
+      <span>Medium Risk</span>
+    </div>
+    <div className="flex items-center space-x-1">
+      <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
+      <span>Low Risk</span>
+    </div>
+  </div>
+</GlassCard>
       </div>
 
       {/* Primary Content Grid */}
@@ -164,16 +180,16 @@ const Dashboard = React.memo(() => {
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center font-bold text-white">
-                      {user.avatar}
+                    <div className="w-10 h-10 rounded-full bg-cyan-600 flex items-center justify-center font-bold text-white">
+                      {user.avatar} 
                     </div>
                     <div>
                       <p className="font-semibold text-white">{user.name}</p>
                       <p className="text-xs text-gray-400">{user.department}</p>
                     </div>
                   </div>
-                  <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)} ${getRiskGlow(user.riskScore)}`}>
-                    {user.riskScore}
+                  <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
+                    {user.riskScore} 
                   </div>
                 </div>
               </motion.div>
@@ -269,4 +285,3 @@ const Dashboard = React.memo(() => {
 Dashboard.displayName = 'Dashboard';
 
 export default Dashboard;
-
