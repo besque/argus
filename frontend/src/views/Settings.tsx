@@ -12,18 +12,18 @@ const Settings = React.memo(() => {
       <motion.h1
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-4xl font-bold mb-8 neon-text text-cyan-400"
+        className="text-4xl font-bold mb-8 neon-text text-black"
       >
         Settings
       </motion.h1>
 
       <GlassCard>
-        <h2 className="text-xl font-semibold mb-4 text-cyan-400">Notifications</h2>
+        <h2 className="text-xl font-semibold mb-4 text-black">Notifications</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-medium">Email Notifications</p>
-              <p className="text-sm text-gray-400">Receive email alerts for critical events</p>
+              <p className="text-black font-medium">Email Notifications</p>
+              <p className="text-sm text-black">Receive email alerts for critical events</p>
             </div>
             <button
               onClick={() => setNotifications(!notifications)}
@@ -39,8 +39,8 @@ const Settings = React.memo(() => {
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-white font-medium">Real-time Alerts</p>
-              <p className="text-sm text-gray-400">Get instant notifications for high-risk activities</p>
+              <p className="text-black font-medium">Real-time Alerts</p>
+              <p className="text-sm text-black">Get instant notifications for high-risk activities</p>
             </div>
             <button
               onClick={() => setAlerts(!alerts)}
@@ -58,11 +58,11 @@ const Settings = React.memo(() => {
       </GlassCard>
 
       <GlassCard>
-        <h2 className="text-xl font-semibold mb-4 text-cyan-400">Appearance</h2>
+        <h2 className="text-xl font-semibold mb-4 text-black">Appearance</h2>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white font-medium">Dark Mode</p>
-            <p className="text-sm text-gray-400">Toggle dark theme</p>
+            <p className="text-black font-medium">Dark Mode</p>
+            <p className="text-sm text-black">Toggle dark theme</p>
           </div>
           <button
             onClick={() => setDarkMode(!darkMode)}
@@ -79,15 +79,15 @@ const Settings = React.memo(() => {
       </GlassCard>
 
       <GlassCard>
-        <h2 className="text-xl font-semibold mb-4 text-cyan-400">Security</h2>
+        <h2 className="text-xl font-semibold mb-4 text-black">Security</h2>
         <div className="space-y-3">
           <button className="w-full px-4 py-3 glass rounded-lg border border-white/10 hover:border-cyan-500/50 text-left transition-colors">
-            <p className="text-white font-medium">Change Password</p>
-            <p className="text-sm text-gray-400">Update your account password</p>
+            <p className="text-black font-medium">Change Password</p>
+            <p className="text-sm text-black">Update your account password</p>
           </button>
           <button className="w-full px-4 py-3 glass rounded-lg border border-white/10 hover:border-cyan-500/50 text-left transition-colors">
-            <p className="text-white font-medium">Two-Factor Authentication</p>
-            <p className="text-sm text-gray-400">Enable 2FA for enhanced security</p>
+            <p className="text-black font-medium">Two-Factor Authentication</p>
+            <p className="text-sm text-black">Enable 2FA for enhanced security</p>
           </button>
         </div>
       </GlassCard>

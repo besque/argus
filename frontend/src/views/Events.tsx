@@ -9,10 +9,10 @@ const Events = React.memo(() => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <h1 className="text-6xl font-bold mb-4 neon-text text-cyan-400">
+        <h1 className="text-6xl font-bold mb-4 neon-text text-black">
           Events Coming Soon
         </h1>
-        <p className="text-xl text-gray-400">
+        <p className="text-xl text-black">
           Advanced event management and filtering will be available here
         </p>
       </motion.div>

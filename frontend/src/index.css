@@ -4,8 +4,12 @@
 
 @layer base {
   body {
-    @apply bg-gray-900 text-gray-100;
-    /* Use Tailwind's font-sans (Montserrat via tailwind.config) */
+    @apply text-black;
+    background: #f5f5f0;
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(200, 200, 200, 0.05) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(200, 200, 200, 0.05) 0%, transparent 50%);
+    /* Use Tailwind's font-sans (Parkinsans via tailwind.config) */
     @apply font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -14,19 +18,25 @@
 
 @layer utilities {
   .glass {
-    background: rgba(17, 24, 39, 0.6);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(200, 200, 200, 0.25);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border: 1px solid rgba(150, 150, 150, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
   }
 
   .glass-hover {
-    @apply glass;
+    background: rgba(200, 200, 200, 0.25);
+    backdrop-filter: blur(12px) saturate(150%);
+    -webkit-backdrop-filter: blur(12px) saturate(150%);
+    border: 1px solid rgba(150, 150, 150, 0.2);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
   }
 
   .glass-hover:hover {
-    border-color: rgba(0, 240, 255, 0.5);
+    border-color: rgba(150, 150, 150, 0.35);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12), 0 3px 10px rgba(0, 0, 0, 0.08);
   }
 
   .neon-text {
