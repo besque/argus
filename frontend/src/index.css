@@ -9,9 +9,8 @@
     background-image: 
       radial-gradient(circle at 20% 50%, rgba(200, 200, 200, 0.05) 0%, transparent 50%),
       radial-gradient(circle at 80% 80%, rgba(200, 200, 200, 0.05) 0%, transparent 50%);
-    /* Font family changed to prioritize Helvetica, as requested */
-    font-family: 'Helvetica Neue', 'Helvetica', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', sans-serif;
+    /* Use Tailwind's font-sans (Parkinsans via tailwind.config) */
+    @apply font-sans;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
