@@ -19,12 +19,21 @@ interface UserProfileDrilldownProps {
 }
 
 const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBack }) => {
+  // Map risk vectors to OCEAN personality traits
+  const oceanScores = {
+    openness: 100 - user.riskVectors.policyViolations, // Low policy violations = high openness
+    conscientiousness: user.riskVectors.loginSuccessRate, // High login success = conscientiousness
+    extroversion: user.riskVectors.externalAccess, // External access = extroversion
+    agreeableness: 100 - user.riskVectors.unusualHours, // Normal hours = agreeableness
+    neuroticism: user.riskVectors.dataAccessFrequency, // High data access frequency = neuroticism
+  };
+
   const radarData = [
-    { subject: 'Data Access', A: user.riskVectors.dataAccessFrequency, fullMark: 100 },
-    { subject: 'Login Success', A: user.riskVectors.loginSuccessRate, fullMark: 100 },
-    { subject: 'Policy Violations', A: user.riskVectors.policyViolations, fullMark: 100 },
-    { subject: 'Unusual Hours', A: user.riskVectors.unusualHours, fullMark: 100 },
-    { subject: 'External Access', A: user.riskVectors.externalAccess, fullMark: 100 },
+    { subject: 'Openness', A: oceanScores.openness, fullMark: 100 },
+    { subject: 'Conscientiousness', A: oceanScores.conscientiousness, fullMark: 100 },
+    { subject: 'Extroversion', A: oceanScores.extroversion, fullMark: 100 },
+    { subject: 'Agreeableness', A: oceanScores.agreeableness, fullMark: 100 },
+    { subject: 'Neuroticism', A: oceanScores.neuroticism, fullMark: 100 },
   ];
 
   const getStatusColor = (status: string) => {
@@ -111,7 +120,7 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
 
         {/* Spider Chart */}
         <GlassCard className="lg:col-span-1">
-          <h3 className="text-lg font-semibold mb-4 text-black">Risk Vectors</h3>
+          <h3 className="text-lg font-semibold mb-4 text-black">OCEAN Analysis</h3>
           <ResponsiveContainer width="100%" height={400}>
             <RadarChart data={radarData}>
               <PolarGrid stroke="#374151" />
@@ -125,7 +134,7 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
                 tick={{ fill: '#9ca3af', fontSize: 10 }}
               />
               <Radar
-                name="Risk Level"
+                name="Trait Score"
                 dataKey="A"
                 stroke="#00f0ff"
                 fill="#00f0ff"
