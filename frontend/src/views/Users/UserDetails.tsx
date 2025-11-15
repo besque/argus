@@ -70,7 +70,7 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
                   user.riskScore >= 70 ? 'text-red-400' :
                   user.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'
                 }`}>
-                  {user.riskScore}
+                  {user.riskScore.toFixed(1)}
                 </div>
                 <p className="text-xs text-black mt-1">Risk Score</p>
               </GlassCard>
@@ -108,7 +108,7 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
                   user.riskScore >= 70 ? 'text-red-400' :
                   user.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'
                 }`}>
-                  {user.riskScore}
+                  {user.riskScore.toFixed(1)}
                 </p>
               </GlassCard>
             </motion.div>

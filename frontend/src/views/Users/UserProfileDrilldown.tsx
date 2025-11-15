@@ -53,21 +53,35 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
   }, [user.id]);
 
   // Use real OCEAN scores if available, otherwise map from risk vectors
-  const oceanScores = userDetails?.ocean_vector 
+  // Handle nested ocean_vector format from API
+  const rawOceanVector = userDetails?.ocean_vector;
+  let actualOceanVector = null;
+  
+  if (rawOceanVector) {
+    // Check if it's nested {user_id, ocean_vector: {...}} or direct {...}
+    if (rawOceanVector.ocean_vector && typeof rawOceanVector.ocean_vector === 'object') {
+      actualOceanVector = rawOceanVector.ocean_vector;
+    } else if (rawOceanVector.O !== undefined || rawOceanVector.C !== undefined) {
+      // Already in correct format {O, C, E, A, N}
+      actualOceanVector = rawOceanVector;
+    }
+  }
+  
+  const oceanScores = actualOceanVector
     ? {
-        openness: (userDetails.ocean_vector.O || 0) * 20, // Scale 0-5 to 0-100
-        conscientiousness: (userDetails.ocean_vector.C || 0) * 20,
-        extroversion: (userDetails.ocean_vector.E || 0) * 20,
-        agreeableness: (userDetails.ocean_vector.A || 0) * 20,
-        neuroticism: (userDetails.ocean_vector.N || 0) * 20,
+        openness: (actualOceanVector.O || 0) * 20, // Scale 0-5 to 0-100
+        conscientiousness: (actualOceanVector.C || 0) * 20,
+        extroversion: (actualOceanVector.E || 0) * 20,
+        agreeableness: (actualOceanVector.A || 0) * 20,
+        neuroticism: (actualOceanVector.N || 0) * 20,
       }
     : {
-        openness: 100 - (user.riskVectors.policyViolations || 0),
-        conscientiousness: user.riskVectors.loginSuccessRate || 0,
-        extroversion: user.riskVectors.externalAccess || 0,
-        agreeableness: 100 - (user.riskVectors.unusualHours || 0),
-        neuroticism: user.riskVectors.dataAccessFrequency || 0,
-      };
+        openness: 100 - (user.riskVectors?.policyViolations || 0),
+        conscientiousness: user.riskVectors?.loginSuccessRate || 0,
+        extroversion: user.riskVectors?.externalAccess || 0,
+        agreeableness: 100 - (user.riskVectors?.unusualHours || 0),
+        neuroticism: user.riskVectors?.dataAccessFrequency || 0,
+  };
 
   const radarData = [
     { subject: 'Openness', A: oceanScores.openness, fullMark: 100 },
@@ -155,7 +169,7 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
                 user.riskScore >= 70 ? 'text-red-400' :
                 user.riskScore >= 40 ? 'text-yellow-400' : 'text-green-400'
               }`}>
-                {user.riskScore}
+                {user.riskScore.toFixed(1)}
               </p>
             </div>
             <div className={`px-4 py-2 rounded-lg border ${getStatusColor(user.status)}`}>
@@ -207,9 +221,9 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
               <Legend />
             </RadarChart>
           </ResponsiveContainer>
-          {userDetails?.ocean_vector && (
+          {actualOceanVector && (
             <div className="mt-4 text-xs text-gray-500 text-center">
-              <p>O: {userDetails.ocean_vector.O?.toFixed(2)} | C: {userDetails.ocean_vector.C?.toFixed(2)} | E: {userDetails.ocean_vector.E?.toFixed(2)} | A: {userDetails.ocean_vector.A?.toFixed(2)} | N: {userDetails.ocean_vector.N?.toFixed(2)}</p>
+              <p>O: {actualOceanVector.O?.toFixed(2)} | C: {actualOceanVector.C?.toFixed(2)} | E: {actualOceanVector.E?.toFixed(2)} | A: {actualOceanVector.A?.toFixed(2)} | N: {actualOceanVector.N?.toFixed(2)}</p>
             </div>
           )}
         </GlassCard>
@@ -287,45 +301,45 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
 
       {/* Recent Events */}
       {userDetails?.recent_events && userDetails.recent_events.length > 0 && (
-        <GlassCard>
-          <h3 className="text-lg font-semibold mb-4 text-black">Recent Activity Logs</h3>
-          <div className="overflow-y-auto max-h-[400px]">
-            <table className="w-full">
-              <thead>
+      <GlassCard>
+        <h3 className="text-lg font-semibold mb-4 text-black">Recent Activity Logs</h3>
+        <div className="overflow-y-auto max-h-[400px]">
+          <table className="w-full">
+            <thead>
                 <tr className="border-b border-gray-300/20">
-                  <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
-                  <th className="text-left py-2 px-3 text-sm text-black">Action</th>
-                  <th className="text-left py-2 px-3 text-sm text-black">Type</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Action</th>
+                <th className="text-left py-2 px-3 text-sm text-black">Type</th>
                   <th className="text-left py-2 px-3 text-sm text-black">Resource</th>
                   <th className="text-left py-2 px-3 text-sm text-black">Risk Score</th>
-                </tr>
-              </thead>
-              <tbody>
+              </tr>
+            </thead>
+            <tbody>
                 {userDetails.recent_events.map((event: any, index: number) => (
-                  <motion.tr
+                <motion.tr
                     key={event._id || index}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
                     className="border-b border-gray-300/10 hover:bg-gray-300/10 transition-colors"
-                  >
-                    <td className="py-3 px-3 text-sm text-black">
+                >
+                  <td className="py-3 px-3 text-sm text-black">
                       {new Date(event.ts).toLocaleString()}
                     </td>
                     <td className="py-3 px-3 text-sm text-black">{event.action || 'N/A'}</td>
                     <td className="py-3 px-3 text-sm text-black">{event.type || 'N/A'}</td>
                     <td className="py-3 px-3 text-sm text-black truncate max-w-xs">
                       {event.resource || 'N/A'}
-                    </td>
+                  </td>
                     <td className="py-3 px-3 text-sm text-black">
                       {event.risk_score ? Math.round(event.risk_score * 100) : '-'}
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </GlassCard>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </GlassCard>
       )}
     </div>
   );

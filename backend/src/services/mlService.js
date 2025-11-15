@@ -18,7 +18,11 @@ const getUserOcean = async (userId) => {
     const response = await axios.get(`${ML_OCEAN_URL}/${userId}`, { timeout: 3000 });
     return response.data;
   } catch (err) {
-    console.error('OCEAN fetch error:', err.message);
+    console.error(`OCEAN fetch error for user ${userId}:`, err.message);
+    if (err.response) {
+      console.error(`  Response status: ${err.response.status}`);
+      console.error(`  Response data:`, err.response.data);
+    }
     return null;
   }
 };

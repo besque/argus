@@ -382,9 +382,9 @@ const Dashboard = React.memo(() => {
                         <p className="text-xs text-black">{user.department}</p>
                       </div>
                     </div>
-                    <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
-                      {user.riskScore} 
-                    </div>
+                  <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
+                    {user.riskScore.toFixed(1)} 
+                  </div>
                   </div>
                 </motion.div>
               ))}

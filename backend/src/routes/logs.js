@@ -318,12 +318,66 @@ router.post('/', async (req, res, next) => {
         
         await alert.save();
         
+        // Recalculate user's overall risk score from recent alerts (not just this event)
+        const recentAlerts = await Alert.find({
+          user: event.user
+        })
+          .sort({ created_at: -1 })
+          .limit(50)
+          .lean();
+        
+        let calculatedRisk = mlResult.risk_score; // Start with current event's risk
+        
+        if (recentAlerts.length > 0) {
+          // Calculate key metrics
+          const maxRisk = Math.max(...recentAlerts.map(a => a.risk_score));
+          const avgRisk = recentAlerts.reduce((sum, a) => sum + a.risk_score, 0) / recentAlerts.length;
+          
+          // Get weighted average
+          let weightedSum = 0;
+          let totalWeight = 0;
+          recentAlerts.forEach((alert, index) => {
+            const recencyWeight = 1 / (index + 1);
+            const riskWeight = alert.risk_score >= 0.7 ? 1.5 : 1.0;
+            const combinedWeight = recencyWeight * riskWeight;
+            weightedSum += alert.risk_score * combinedWeight;
+            totalWeight += combinedWeight;
+          });
+          const weightedAvg = weightedSum / totalWeight;
+          
+          // Base calculation on average alert risk (same logic as recalculation script)
+          if (avgRisk >= 0.85) {
+            calculatedRisk = avgRisk * 0.60 + maxRisk * 0.25 + weightedAvg * 0.15;
+            calculatedRisk = Math.max(0.75, calculatedRisk);
+          } else if (avgRisk >= 0.75) {
+            calculatedRisk = avgRisk * 0.50 + maxRisk * 0.30 + weightedAvg * 0.20;
+            calculatedRisk = Math.max(0.65, calculatedRisk);
+          } else if (avgRisk >= 0.60) {
+            calculatedRisk = avgRisk * 0.45 + maxRisk * 0.35 + weightedAvg * 0.20;
+            calculatedRisk = Math.max(0.50, calculatedRisk);
+          } else {
+            calculatedRisk = weightedAvg * 0.50 + maxRisk * 0.30 + avgRisk * 0.20;
+          }
+          
+          // Only blend with historical for lower-risk users
+          if (avgRisk < 0.60) {
+            const allAlerts = await Alert.find({ user: event.user }).lean();
+            if (allAlerts.length > 10) {
+              const historicalAvg = allAlerts.reduce((sum, a) => sum + a.risk_score, 0) / allAlerts.length;
+              calculatedRisk = calculatedRisk * 0.75 + historicalAvg * 0.25;
+            }
+          }
+        }
+        
+        // Ensure risk is between 0 and 1
+        calculatedRisk = Math.max(0, Math.min(1, calculatedRisk));
+        
         await User.findOneAndUpdate(
           { _id: event.user },
           {
             $set: { 
               last_seen: event.ts,
-              current_risk: Math.max(mlResult.risk_score, 0)
+              current_risk: calculatedRisk
             },
             $addToSet: { devices: event.device }
           },

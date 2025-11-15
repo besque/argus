@@ -109,7 +109,18 @@ router.get('/:id', async (req, res, next) => {
     const markovSequence = buildEventSequence(recentEvents);
     
     // Get OCEAN scores from ML service
-    const oceanVector = await mlService.getUserOcean(userId);
+    const oceanResponse = await mlService.getUserOcean(userId);
+    // ML service returns {user_id, ocean_vector}, so extract ocean_vector
+    let oceanVector = null;
+    if (oceanResponse) {
+      // Handle both nested format {user_id, ocean_vector: {...}} and direct format {...}
+      if (oceanResponse.ocean_vector && typeof oceanResponse.ocean_vector === 'object') {
+        oceanVector = oceanResponse.ocean_vector;
+      } else if (oceanResponse.O !== undefined || oceanResponse.C !== undefined) {
+        // Already in the correct format
+        oceanVector = oceanResponse;
+      }
+    }
     
     res.json({
       success: true,
@@ -180,7 +191,8 @@ router.post('/:id/ai_summary', async (req, res, next) => {
       .select('anomaly_type created_at explanation')
       .lean();
     
-    const oceanVector = await mlService.getUserOcean(userId);
+    const oceanResponse = await mlService.getUserOcean(userId);
+    const oceanVector = oceanResponse?.ocean_vector || null;
     
     const userData = {
       user: userId,
