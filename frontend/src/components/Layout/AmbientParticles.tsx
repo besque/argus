@@ -19,7 +19,7 @@ const AmbientParticles: React.FC = () => {
     // This avoids stacking issues where the canvas is clipped by parent elements
     fullScreen: { enable: true, zIndex: -1 },
     particles: {
-      color: { value: '#4a4a4a' },
+      color: { value: ['#4a4a4a', '#6b6b6b', '#333333', '#00f0ff'] },
       move: {
         enable: true,
         // make particles move at a subtle steady pace; random is false
@@ -32,7 +32,7 @@ const AmbientParticles: React.FC = () => {
       },
       // increase count for a richer background (50% increase from 120 -> 180)
       number: {
-        value: 180,
+        value: 259,
         density: { enable: true, area: 1600 },
       },
       // synchronize size and opacity animations to create a coordinated pulse
