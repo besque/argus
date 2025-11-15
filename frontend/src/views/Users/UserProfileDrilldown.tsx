@@ -67,6 +67,7 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
     }
   }
   
+  // Calculate OCEAN scores - prefer real data, fallback to generated data from API
   const oceanScores = actualOceanVector
     ? {
         openness: (actualOceanVector.O || 0) * 20, // Scale 0-5 to 0-100
@@ -75,12 +76,21 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
         agreeableness: (actualOceanVector.A || 0) * 20,
         neuroticism: (actualOceanVector.N || 0) * 20,
       }
+    : userDetails?.ocean_vector // Check if backend provided fallback OCEAN data
+    ? {
+        openness: ((userDetails.ocean_vector.O || 0) * 20),
+        conscientiousness: ((userDetails.ocean_vector.C || 0) * 20),
+        extroversion: ((userDetails.ocean_vector.E || 0) * 20),
+        agreeableness: ((userDetails.ocean_vector.A || 0) * 20),
+        neuroticism: ((userDetails.ocean_vector.N || 0) * 20),
+      }
     : {
-        openness: 100 - (user.riskVectors?.policyViolations || 0),
-        conscientiousness: user.riskVectors?.loginSuccessRate || 0,
-        extroversion: user.riskVectors?.externalAccess || 0,
-        agreeableness: 100 - (user.riskVectors?.unusualHours || 0),
-        neuroticism: user.riskVectors?.dataAccessFrequency || 0,
+        // Final fallback: Generate reasonable defaults based on risk score
+        openness: 50 + (Math.random() - 0.5) * 30, // 35-65
+        conscientiousness: Math.max(30, 80 - (user.riskScore || 0) * 0.6), // Lower for risky users
+        extroversion: 40 + (Math.random() - 0.5) * 30, // 25-55
+        agreeableness: Math.max(30, 70 - (user.riskScore || 0) * 0.4), // Slightly lower for risky users
+        neuroticism: Math.min(70, 30 + (user.riskScore || 0) * 0.5), // Higher for risky users
   };
 
   const radarData = [
@@ -221,11 +231,19 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
               <Legend />
             </RadarChart>
           </ResponsiveContainer>
-          {actualOceanVector && (
-            <div className="mt-4 text-xs text-gray-500 text-center">
-              <p>O: {actualOceanVector.O?.toFixed(2)} | C: {actualOceanVector.C?.toFixed(2)} | E: {actualOceanVector.E?.toFixed(2)} | A: {actualOceanVector.A?.toFixed(2)} | N: {actualOceanVector.N?.toFixed(2)}</p>
-            </div>
-          )}
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            {actualOceanVector || userDetails?.ocean_vector ? (
+              <p>
+                O: {(actualOceanVector?.O || userDetails?.ocean_vector?.O || 0).toFixed(2)} | 
+                C: {(actualOceanVector?.C || userDetails?.ocean_vector?.C || 0).toFixed(2)} | 
+                E: {(actualOceanVector?.E || userDetails?.ocean_vector?.E || 0).toFixed(2)} | 
+                A: {(actualOceanVector?.A || userDetails?.ocean_vector?.A || 0).toFixed(2)} | 
+                N: {(actualOceanVector?.N || userDetails?.ocean_vector?.N || 0).toFixed(2)}
+              </p>
+            ) : (
+              <p className="text-gray-400 italic">Using generated OCEAN scores based on risk profile</p>
+            )}
+          </div>
         </GlassCard>
       </div>
 
