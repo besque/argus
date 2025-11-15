@@ -11,6 +11,7 @@ const alertsRouter = require('./routes/alerts');
 const usersRouter = require('./routes/users');
 const dashboardRouter = require('./routes/dashboard');
 const searchRouter = require('./routes/search');
+const eventsRouter = require('./routes/events');
 
 const app = express();
 const server = http.createServer(app);
@@ -33,6 +34,7 @@ app.use('/api/alerts', alertsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/dashboard', dashboardRouter);
 app.use('/api/search', searchRouter);
+app.use('/api/events', eventsRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

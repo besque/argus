@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   RadarChart,
@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import GlassCard from '../../components/UI/GlassCard';
 import ActionButton from '../../components/UI/ActionButton';
+import { apiService } from '../../services/apiService';
 import { User } from '../../data/mockData';
 
 interface UserProfileDrilldownProps {
@@ -18,15 +19,55 @@ interface UserProfileDrilldownProps {
   onBack: () => void;
 }
 
-const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBack }) => {
-  // Map risk vectors to OCEAN personality traits
-  const oceanScores = {
-    openness: 100 - user.riskVectors.policyViolations, // Low policy violations = high openness
-    conscientiousness: user.riskVectors.loginSuccessRate, // High login success = conscientiousness
-    extroversion: user.riskVectors.externalAccess, // External access = extroversion
-    agreeableness: 100 - user.riskVectors.unusualHours, // Normal hours = agreeableness
-    neuroticism: user.riskVectors.dataAccessFrequency, // High data access frequency = neuroticism
+interface UserDetails {
+  user: any;
+  recent_events: any[];
+  top_alerts: any[];
+  markov_sequence?: string;
+  ocean_vector?: {
+    O?: number;
+    C?: number;
+    E?: number;
+    A?: number;
+    N?: number;
   };
+}
+
+const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBack }) => {
+  const [userDetails, setUserDetails] = useState<UserDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const data = await apiService.getUser(user.id);
+        setUserDetails(data);
+      } catch (error) {
+        console.error('Error fetching user details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchUserDetails();
+  }, [user.id]);
+
+  // Use real OCEAN scores if available, otherwise map from risk vectors
+  const oceanScores = userDetails?.ocean_vector 
+    ? {
+        openness: (userDetails.ocean_vector.O || 0) * 20, // Scale 0-5 to 0-100
+        conscientiousness: (userDetails.ocean_vector.C || 0) * 20,
+        extroversion: (userDetails.ocean_vector.E || 0) * 20,
+        agreeableness: (userDetails.ocean_vector.A || 0) * 20,
+        neuroticism: (userDetails.ocean_vector.N || 0) * 20,
+      }
+    : {
+        openness: 100 - (user.riskVectors.policyViolations || 0),
+        conscientiousness: user.riskVectors.loginSuccessRate || 0,
+        extroversion: user.riskVectors.externalAccess || 0,
+        agreeableness: 100 - (user.riskVectors.unusualHours || 0),
+        neuroticism: user.riskVectors.dataAccessFrequency || 0,
+      };
 
   const radarData = [
     { subject: 'Openness', A: oceanScores.openness, fullMark: 100 },
@@ -56,6 +97,28 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
       return `User ${user.name} demonstrates low-risk behavior patterns. Their activity is consistent with their role and responsibilities, with minimal policy violations and normal access patterns. Login success rates are high, and there are no significant anomalies in their behavior. This user represents a standard, compliant user profile with no immediate security concerns.`;
     }
   };
+
+  const formatMarkovSequence = (sequence: string | undefined) => {
+    if (!sequence) return 'No sequence data available';
+    return sequence.split(' -> ').map((event, index) => (
+      <span key={index}>
+        <span className="px-2 py-1 rounded bg-gray-200 text-gray-800 text-sm font-mono">
+          {event}
+        </span>
+        {index < sequence.split(' -> ').length - 1 && (
+          <span className="mx-2 text-gray-400">→</span>
+        )}
+      </span>
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-gray-400">Loading user details...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="pt-32 pb-12 px-6 max-w-7xl mx-auto space-y-8">
@@ -144,55 +207,126 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
               <Legend />
             </RadarChart>
           </ResponsiveContainer>
+          {userDetails?.ocean_vector && (
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              <p>O: {userDetails.ocean_vector.O?.toFixed(2)} | C: {userDetails.ocean_vector.C?.toFixed(2)} | E: {userDetails.ocean_vector.E?.toFixed(2)} | A: {userDetails.ocean_vector.A?.toFixed(2)} | N: {userDetails.ocean_vector.N?.toFixed(2)}</p>
+            </div>
+          )}
         </GlassCard>
       </div>
 
-      {/* User Logs */}
+      {/* Markov Sequence Display */}
       <GlassCard>
-        <h3 className="text-lg font-semibold mb-4 text-black">Recent Activity Logs</h3>
-        <div className="overflow-y-auto max-h-[400px]">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/10">
-                <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
-                <th className="text-left py-2 px-3 text-sm text-black">Action</th>
-                <th className="text-left py-2 px-3 text-sm text-black">Type</th>
-                <th className="text-left py-2 px-3 text-sm text-black">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {user.recentActivity.map((activity, index) => (
-                <motion.tr
-                  key={activity.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="border-b border-white/5 hover:bg-white/5 transition-colors"
-                >
-                  <td className="py-3 px-3 text-sm text-black">
-                    {new Date(activity.timestamp).toLocaleString()}
-                  </td>
-                  <td className="py-3 px-3 text-sm text-black">{activity.action}</td>
-                  <td className="py-3 px-3 text-sm text-black">{activity.type}</td>
-                  <td className="py-3 px-3 text-sm">
-                    <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        activity.status === 'success'
-                          ? 'bg-green-500/20 text-green-400'
-                          : activity.status === 'failed'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
-                    >
-                      {activity.status}
-                    </span>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+        <h3 className="text-lg font-semibold mb-4 text-black">Markov Event Sequence</h3>
+        <div className="bg-gray-100/50 rounded-lg p-4 border border-gray-300/20">
+          <div className="flex flex-wrap items-center gap-2">
+            {formatMarkovSequence(userDetails?.markov_sequence)}
+          </div>
+          <p className="text-xs text-gray-500 mt-3">
+            This sequence represents the last 15 events performed by this user, used by the Markov Chain model to detect anomalous behavior patterns.
+          </p>
         </div>
       </GlassCard>
+
+      {/* Top Alerts */}
+      {userDetails?.top_alerts && userDetails.top_alerts.length > 0 && (
+        <GlassCard>
+          <h3 className="text-lg font-semibold mb-4 text-black">Recent Alerts</h3>
+          <div className="overflow-y-auto max-h-[300px]">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-300/20">
+                  <th className="text-left py-2 px-3 text-sm text-black">Date</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Type</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Severity</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Risk Score</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Explanation</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userDetails.top_alerts.map((alert: any, index: number) => (
+                  <motion.tr
+                    key={alert._id || index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border-b border-gray-300/10 hover:bg-gray-300/10 transition-colors"
+                  >
+                    <td className="py-3 px-3 text-sm text-black">
+                      {new Date(alert.created_at).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-3 text-sm text-black capitalize">
+                      {alert.anomaly_type?.replace('_', ' ') || 'Unknown'}
+                    </td>
+                    <td className="py-3 px-3 text-sm">
+                      <span
+                        className={`px-2 py-1 rounded text-xs ${
+                          alert.severity === 'high'
+                            ? 'bg-red-500/20 text-red-400'
+                            : alert.severity === 'medium'
+                            ? 'bg-yellow-500/20 text-yellow-400'
+                            : 'bg-green-500/20 text-green-400'
+                        }`}
+                      >
+                        {alert.severity}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-sm text-black">
+                      {Math.round((alert.risk_score || 0) * 100)}
+                    </td>
+                    <td className="py-3 px-3 text-sm text-black">
+                      {alert.explanation || 'No explanation available'}
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </GlassCard>
+      )}
+
+      {/* Recent Events */}
+      {userDetails?.recent_events && userDetails.recent_events.length > 0 && (
+        <GlassCard>
+          <h3 className="text-lg font-semibold mb-4 text-black">Recent Activity Logs</h3>
+          <div className="overflow-y-auto max-h-[400px]">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-300/20">
+                  <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Action</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Type</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Resource</th>
+                  <th className="text-left py-2 px-3 text-sm text-black">Risk Score</th>
+                </tr>
+              </thead>
+              <tbody>
+                {userDetails.recent_events.map((event: any, index: number) => (
+                  <motion.tr
+                    key={event._id || index}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="border-b border-gray-300/10 hover:bg-gray-300/10 transition-colors"
+                  >
+                    <td className="py-3 px-3 text-sm text-black">
+                      {new Date(event.ts).toLocaleString()}
+                    </td>
+                    <td className="py-3 px-3 text-sm text-black">{event.action || 'N/A'}</td>
+                    <td className="py-3 px-3 text-sm text-black">{event.type || 'N/A'}</td>
+                    <td className="py-3 px-3 text-sm text-black truncate max-w-xs">
+                      {event.resource || 'N/A'}
+                    </td>
+                    <td className="py-3 px-3 text-sm text-black">
+                      {event.risk_score ? Math.round(event.risk_score * 100) : '-'}
+                    </td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </GlassCard>
+      )}
     </div>
   );
 });
@@ -200,4 +334,3 @@ const UserProfileDrilldown = React.memo<UserProfileDrilldownProps>(({ user, onBa
 UserProfileDrilldown.displayName = 'UserProfileDrilldown';
 
 export default UserProfileDrilldown;
-

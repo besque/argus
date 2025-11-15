@@ -8,25 +8,54 @@ const geminiService = require('../services/geminiService');
 
 router.get('/', async (req, res, next) => {
   try {
-    const { sort = 'riskscore', limit = 5, skip = 0 } = req.query;
-    
+    const { sort = 'riskscore', limit = 100, skip = 0 } = req.query;
+
     const sortField = sort === 'riskscore' ? { current_risk: -1 } : { last_seen: -1 };
-    
+
     const users = await User.find()
       .sort(sortField)
       .limit(parseInt(limit))
       .skip(parseInt(skip))
       .lean();
-    
-    const total = await User.countDocuments();
-    
-    res.json({
-      success: true,
-      data: users,
-      total,
-      limit: parseInt(limit),
-      skip: parseInt(skip)
+
+    // Map to frontend-friendly shape - make sure it matches dashboard top users
+    const mapped = users.map(u => {
+      const riskPct = Math.round((u.current_risk || 0) * 100);
+      const name = u.name || u._id;
+      const initials = name
+        .split(' ')
+        .filter(Boolean)
+        .map(s => s[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+      const status = riskPct >= 70 ? 'high' : riskPct >= 40 ? 'medium' : 'low';
+      return {
+        id: u._id,
+        name,
+        email: `${u._id}@example.com`,
+        avatar: initials,
+        riskScore: riskPct,
+        jobTitle: u.role || 'Employee',
+        department: u.role || 'General',
+        status,
+        recentActivity: [],
+        riskVectors: {
+          dataAccessFrequency: 0,
+          loginSuccessRate: 0,
+          policyViolations: 0,
+          unusualHours: 0,
+          externalAccess: 0
+        },
+        // Add fields to match backend data
+        _id: u._id,
+        role: u.role || 'Employee',
+        current_risk: u.current_risk || 0,
+        last_seen: u.last_seen
+      };
     });
+
+    res.json(mapped);
   } catch (err) {
     next(err);
   }
@@ -43,19 +72,52 @@ router.get('/:id', async (req, res, next) => {
     
     const recentEvents = await Event.find({ user: userId })
       .sort({ ts: -1 })
-      .limit(5)
+      .limit(20)
       .lean();
     
     const topAlerts = await Alert.find({ user: userId })
       .sort({ created_at: -1 })
-      .limit(5)
+      .limit(10)
       .lean();
+    
+    // Build markov sequence from recent events (last 15)
+    const buildEventSequence = (events) => {
+      return events.slice(-15).map(event => {
+        if (event.type === 'AUTH') {
+          if (event.action === 'Logon') return 'LOGIN';
+          if (event.action === 'Logoff') return 'LOGOUT';
+          return 'AUTH';
+        }
+        if (event.type === 'FILE') {
+          const resource = event.resource || '';
+          if (resource.includes('payroll') || resource.includes('compensation') || 
+              resource.includes('employee_records') || resource.includes('salary') ||
+              resource.includes('strategic') || resource.includes('source_code')) {
+            return 'FILE_SENSITIVE';
+          }
+          return 'FILE_ACCESS';
+        }
+        if (event.type === 'EMAIL') return 'EMAIL_SEND';
+        if (event.type === 'DEVICE' && event.action === 'Connect') return 'USB_CONNECT';
+        if (event.type === 'ENDPOINT') return 'PROCESS';
+        if (event.type === 'APP') return 'WEB_BROWSE';
+        if (event.type === 'NET') return 'NETWORK';
+        return 'UNKNOWN';
+      }).join(' -> ');
+    };
+    
+    const markovSequence = buildEventSequence(recentEvents);
+    
+    // Get OCEAN scores from ML service
+    const oceanVector = await mlService.getUserOcean(userId);
     
     res.json({
       success: true,
       user,
-      recent_events: recentEvents,
-      top_alerts: topAlerts
+      recent_events: recentEvents.slice(0, 5), // Return only first 5 for recent events
+      top_alerts: topAlerts,
+      markov_sequence: markovSequence,
+      ocean_vector: oceanVector
     });
   } catch (err) {
     next(err);

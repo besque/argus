@@ -1,12 +1,13 @@
-const express = require('express');
-const router = express.Router();
-const Event = require('../models/Event');
-const Alert = require('../models/Alert');
-const User = require('../models/User');
-const RiskHistory = require('../models/RiskHistory');
-const mlService = require('../services/mlService');
+require('dotenv').config();
+const mongoose = require('mongoose');
+const Event = require('./models/Event');
+const Alert = require('./models/Alert');
+const User = require('./models/User');
+const RiskHistory = require('./models/RiskHistory');
+const axios = require('axios');
+const ML_URL = process.env.ML_URL || 'http://localhost:8001/analyze';
 
-// Helper function to build event sequence for Markov model
+// Import aggregation functions from logs.js
 function buildEventSequence(events) {
   return events.slice(-15).map(event => {
     if (event.type === 'AUTH') {
@@ -15,7 +16,6 @@ function buildEventSequence(events) {
       return 'AUTH';
     }
     if (event.type === 'FILE') {
-      // Check if sensitive folder
       const resource = event.resource || '';
       if (resource.includes('payroll') || resource.includes('compensation') || 
           resource.includes('employee_records') || resource.includes('salary') ||
@@ -33,112 +33,74 @@ function buildEventSequence(events) {
   }).join(' -> ');
 }
 
-// Helper function to aggregate features from recent events
 function aggregateFeatures(events, currentEvent) {
   const now = new Date(currentEvent.ts || Date.now());
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   
-  // Filter events from last 24 hours
   const recentEvents = events.filter(e => 
     new Date(e.ts) >= twentyFourHoursAgo && new Date(e.ts) <= now
   );
   
-  // Initialize all required features (matching NUMERIC_FEATURE_COLS)
   const aggregates = {
-    logon_count: 0,
-    failed_login_count: 0,
-    external_ip_count: 0,
-    late_night_login_count: 0,
-    file_access_count: 0,
-    total_file_size: 0,
-    avg_file_size: 0,
-    max_file_size: 0,
-    sensitive_folder_access_count: 0,
-    usb_copy_count: 0,
-    email_count: 0,
-    total_email_size: 0,
-    avg_email_size: 0,
-    email_with_attachment_count: 0,
-    external_email_count: 0,
-    web_visit_count: 0,
-    suspicious_domain_count: 0,
+    logon_count: 0, failed_login_count: 0, external_ip_count: 0, late_night_login_count: 0,
+    file_access_count: 0, total_file_size: 0, avg_file_size: 0, max_file_size: 0,
+    sensitive_folder_access_count: 0, usb_copy_count: 0,
+    email_count: 0, total_email_size: 0, avg_email_size: 0,
+    email_with_attachment_count: 0, external_email_count: 0,
+    web_visit_count: 0, suspicious_domain_count: 0,
     usb_connect_count: 0,
-    total_bytes_out: 0,
-    avg_bytes_out: 0,
-    max_bytes_out: 0,
-    total_bytes_in: 0,
-    avg_bytes_in: 0,
-    large_upload_count: 0,
+    total_bytes_out: 0, avg_bytes_out: 0, max_bytes_out: 0,
+    total_bytes_in: 0, avg_bytes_in: 0, large_upload_count: 0,
     lateral_movement_count: 0,
-    process_count: 0,
-    scripting_tool_count: 0,
-    high_integrity_count: 0,
+    process_count: 0, scripting_tool_count: 0, high_integrity_count: 0,
   };
   
-  const fileSizes = [];
-  const emailSizes = [];
-  const bytesOut = [];
-  const bytesIn = [];
+  const fileSizes = [], emailSizes = [], bytesOut = [], bytesIn = [];
   
-  // Aggregate from recent events
   for (const event of recentEvents) {
     const eventHour = new Date(event.ts).getHours();
     const isLateNight = eventHour >= 22 || eventHour <= 4;
     const isExternalIP = event.src_ip && !event.src_ip.startsWith('192.168.');
     
-    // AUTH events
     if (event.type === 'AUTH') {
       if (event.action === 'Logon') {
         aggregates.logon_count++;
-        if (event.raw && event.raw.status === 'Failed') {
-          aggregates.failed_login_count++;
-        }
-        if (isExternalIP) {
-          aggregates.external_ip_count++;
-        }
-        if (isLateNight) {
-          aggregates.late_night_login_count++;
-        }
+        if (event.raw && event.raw.status === 'Failed') aggregates.failed_login_count++;
+        if (isExternalIP) aggregates.external_ip_count++;
+        if (isLateNight) aggregates.late_night_login_count++;
       }
     }
     
-    // FILE events
     if (event.type === 'FILE') {
       aggregates.file_access_count++;
       const size = event.size || 0;
       fileSizes.push(size);
       aggregates.total_file_size += size;
-      
       const resource = event.resource || '';
       if (resource.includes('payroll') || resource.includes('compensation') || 
           resource.includes('employee_records') || resource.includes('salary') ||
           resource.includes('strategic') || resource.includes('source_code')) {
         aggregates.sensitive_folder_access_count++;
       }
-      
       if (event.raw && (event.raw.to_removable_media === 'True' || event.raw.to_removable_media === true)) {
         aggregates.usb_copy_count++;
       }
     }
     
-    // EMAIL events
     if (event.type === 'EMAIL') {
       aggregates.email_count++;
       const size = event.size || 0;
       emailSizes.push(size);
       aggregates.total_email_size += size;
-      
       if (event.raw && event.raw.attachments && event.raw.attachments !== '') {
         aggregates.email_with_attachment_count++;
       }
-      
       const toEmail = event.resource || (event.raw && event.raw.to) || '';
       if (toEmail && !toEmail.includes('company.local')) {
         aggregates.external_email_count++;
       }
     }
     
-    // APP (HTTP) events
     if (event.type === 'APP') {
       aggregates.web_visit_count++;
       const url = event.resource || '';
@@ -148,30 +110,18 @@ function aggregateFeatures(events, currentEvent) {
       }
     }
     
-    // DEVICE (USB) events
-    if (event.type === 'DEVICE') {
-      if (event.action === 'Connect') {
-        aggregates.usb_connect_count++;
-      }
+    if (event.type === 'DEVICE' && event.action === 'Connect') {
+      aggregates.usb_connect_count++;
     }
     
-    // NET events
     if (event.type === 'NET') {
       const bytesOutVal = event.size || (event.raw && event.raw.bytes_out) || 0;
       const bytesInVal = event.raw && event.raw.bytes_in || 0;
-      
       bytesOut.push(bytesOutVal);
       bytesIn.push(bytesInVal);
-      
       aggregates.total_bytes_out += bytesOutVal;
       aggregates.total_bytes_in += bytesInVal;
-      
-      // Large upload (>500KB = 500000 bytes)
-      if (bytesOutVal > 500000) {
-        aggregates.large_upload_count++;
-      }
-      
-      // Lateral movement (RDP, SMB protocols or internal IP connections)
+      if (bytesOutVal > 500000) aggregates.large_upload_count++;
       const protocol = event.raw && event.raw.protocol;
       if (protocol === 'RDP' || protocol === 'SMB') {
         aggregates.lateral_movement_count++;
@@ -180,15 +130,12 @@ function aggregateFeatures(events, currentEvent) {
       }
     }
     
-    // ENDPOINT events
     if (event.type === 'ENDPOINT') {
       aggregates.process_count++;
-      
       const process = event.resource || (event.raw && event.raw.process) || '';
       if (process.toLowerCase().includes('powershell') || process.toLowerCase().includes('cmd')) {
         aggregates.scripting_tool_count++;
       }
-      
       const integrity = event.raw && event.raw.integrity_level;
       if (integrity === 'high') {
         aggregates.high_integrity_count++;
@@ -196,7 +143,6 @@ function aggregateFeatures(events, currentEvent) {
     }
   }
   
-  // Calculate averages and maxes
   if (fileSizes.length > 0) {
     aggregates.avg_file_size = aggregates.total_file_size / fileSizes.length;
     aggregates.max_file_size = Math.max(...fileSizes);
@@ -218,54 +164,31 @@ function aggregateFeatures(events, currentEvent) {
   return aggregates;
 }
 
-router.post('/', async (req, res, next) => {
+async function processEvent(event) {
   try {
-    const eventData = req.body;
-    
-    const event = new Event({
-      ts: new Date(eventData.ts || Date.now()),
-      user: eventData.user,
-      type: eventData.type,
-      action: eventData.action,
-      resource: eventData.resource,
-      src_ip: eventData.src_ip,
-      dst_ip: eventData.dst_ip,
-      device: eventData.device,
-      size: eventData.size,
-      raw: eventData
-    });
-    
-    await event.save();
-    
-    // GET RECENT EVENTS FOR THIS USER (last 24 hours) to build aggregates
-    const now = new Date(eventData.ts || Date.now());
+    const now = new Date(event.ts);
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     
+    // Get recent events for this user
     const recentEvents = await Event.find({
-      user: eventData.user,
+      user: event.user,
       ts: { $gte: oneDayAgo, $lte: now }
     }).sort({ ts: 1 }).lean();
     
-    // BUILD AGGREGATE FEATURES from recent events
     const aggregates = aggregateFeatures(recentEvents, event);
-    
-    // BUILD RECENT SEQUENCE (last 15 events for Markov model)
     const sequence = buildEventSequence(recentEvents);
     
-    // GET USER INFO for known devices
-    const user = await User.findOne({ _id: eventData.user });
+    const user = await User.findOne({ _id: event.user });
     const knownDevices = user ? (user.devices || []) : [];
-    const isNewDevice = eventData.device && !knownDevices.includes(eventData.device);
+    const isNewDevice = event.device && !knownDevices.includes(event.device);
     
-    // PREPARE ML PAYLOAD with all required features
     const mlPayload = {
-      ...eventData,
+      ...event.toObject(),
       ...aggregates,
       recent_sequence: sequence,
-      ts: (eventData.ts ? new Date(eventData.ts) : new Date()).toISOString(),
+      ts: event.ts.toISOString(),
       is_new_device: isNewDevice,
       known_devices: knownDevices,
-      // Ensure numeric features are numbers, not strings
       logon_count: Number(aggregates.logon_count) || 0,
       failed_login_count: Number(aggregates.failed_login_count) || 0,
       external_ip_count: Number(aggregates.external_ip_count) || 0,
@@ -296,108 +219,116 @@ router.post('/', async (req, res, next) => {
       high_integrity_count: Number(aggregates.high_integrity_count) || 0,
     };
     
-    // Call ML service with enriched payload
-    const mlResult = await mlService.analyze(mlPayload, eventData.user);
+    const response = await axios.post(ML_URL, mlPayload, { timeout: 10000 });
+    const mlResult = response.data;
     
-    if (mlResult) {
-      event.risk_score = mlResult.risk_score;
-      event.severity = mlResult.severity;
-      await event.save();
-      
-      if (mlResult.severity === 'medium' || mlResult.severity === 'high') {
-        const alert = new Alert({
+    // Update event with ML results
+    event.risk_score = mlResult.risk_score || 0;
+    event.severity = mlResult.severity || 'low';
+    await event.save();
+    
+    // Create alert if medium or high severity
+    if (mlResult.severity === 'medium' || mlResult.severity === 'high') {
+      await Alert.findOneAndUpdate(
+        { event_id: event._id },
+        {
           event_id: event._id,
           user: event.user,
           risk_score: mlResult.risk_score,
           severity: mlResult.severity,
-          anomaly_type: mlResult.anomaly_type,
-          explanation: mlResult.explanation,
-          scores: mlResult.scores,
-          created_at: new Date()
-        });
-        
-        await alert.save();
-        
-        await User.findOneAndUpdate(
-          { _id: event.user },
-          {
-            $set: { 
-              last_seen: event.ts,
-              current_risk: Math.max(mlResult.risk_score, 0)
-            },
-            $addToSet: { devices: event.device }
+          anomaly_type: mlResult.anomaly_type || 'unknown',
+          explanation: mlResult.explanation || 'Anomaly detected',
+          scores: mlResult.scores || {},
+          created_at: event.ts
+        },
+        { upsert: true, new: true }
+      );
+      
+      // Update user risk
+      await User.findOneAndUpdate(
+        { _id: event.user },
+        {
+          $set: { 
+            last_seen: event.ts,
+            current_risk: Math.max(mlResult.risk_score || 0, 0)
           },
-          { upsert: true, new: true }
-        );
-        
-        const now = new Date();
-        now.setMinutes(0, 0, 0);
-        
-        await RiskHistory.findOneAndUpdate(
-          { user: event.user, ts: now },
-          {
-            $inc: {
-              [`${mlResult.severity}_count`]: 1
-            },
-            $max: { avg_risk: mlResult.risk_score }
+          $addToSet: { devices: event.device }
+        },
+        { upsert: true, new: true }
+      );
+      
+      // Update risk history
+      const nowHour = new Date(event.ts);
+      nowHour.setMinutes(0, 0, 0);
+      
+      await RiskHistory.findOneAndUpdate(
+        { user: event.user, ts: nowHour },
+        {
+          $inc: {
+            [`${mlResult.severity}_count`]: 1
           },
-          { upsert: true }
-        );
-        
-        if (req.app.get('io')) {
-          req.app.get('io').emit('new_alert', {
-            id: alert._id,
-            user: alert.user,
-            severity: alert.severity,
-            anomaly_type: alert.anomaly_type,
-            created_at: alert.created_at
-          });
-        }
-      }
-    } else {
-      event.risk_score = 0;
-      event.severity = 'low';
-      await event.save();
+          $max: { avg_risk: mlResult.risk_score || 0 }
+        },
+        { upsert: true }
+      );
     }
     
-    res.status(201).json({ 
-      success: true, 
-      event_id: event._id, 
-      ml_result: mlResult 
-    });
-  } catch (err) {
-    next(err);
+    return { success: true, severity: mlResult.severity };
+  } catch (error) {
+    console.error(`Error processing event ${event._id}:`, error.message);
+    return { success: false, error: error.message };
   }
-});
+}
 
-router.post('/analyze', async (req, res, next) => {
+async function main() {
   try {
-    const { event, user_id } = req.body;
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('Connected to MongoDB\n');
     
-    // If event doesn't have aggregates, fetch recent events and compute them
-    if (!event.logon_count && !event.recent_sequence) {
-      const now = new Date(event.ts || Date.now());
-      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // Process events that haven't been processed yet (risk_score is 0 or doesn't exist)
+    const events = await Event.find({
+      $or: [
+        { risk_score: { $exists: false } },
+        { risk_score: 0 }
+      ]
+    }).sort({ ts: 1 });
+    
+    console.log(`Found ${events.length} events to process through ML\n`);
+    
+    let processed = 0;
+    let alerts = 0;
+    const batchSize = 10;
+    
+    for (let i = 0; i < events.length; i += batchSize) {
+      const batch = events.slice(i, i + batchSize);
+      const results = await Promise.all(
+        batch.map(event => processEvent(event))
+      );
       
-      const recentEvents = await Event.find({
-        user: user_id,
-        ts: { $gte: oneDayAgo, $lte: now }
-      }).sort({ ts: 1 }).lean();
+      processed += batch.length;
+      alerts += results.filter(r => r.severity === 'medium' || r.severity === 'high').length;
       
-      const aggregates = aggregateFeatures(recentEvents, event);
-      const sequence = buildEventSequence(recentEvents);
+      console.log(`Processed ${processed}/${events.length} events - Alerts: ${alerts}`);
       
-      event.logon_count = aggregates.logon_count;
-      event.recent_sequence = sequence;
-      // Add other aggregates as needed
-      Object.assign(event, aggregates);
+      // Small delay to avoid overwhelming ML service
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    const result = await mlService.analyze(event, user_id);
-    res.json(result);
-  } catch (err) {
-    next(err);
+    console.log(`\n✅ Complete!`);
+    console.log(`   Processed: ${processed} events`);
+    console.log(`   Alerts created: ${alerts}`);
+    
+    const totalAlerts = await Alert.countDocuments();
+    const totalUsers = await User.countDocuments();
+    console.log(`\n📊 Final Stats:`);
+    console.log(`   Total Users: ${totalUsers}`);
+    console.log(`   Total Alerts: ${totalAlerts}`);
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('Fatal error:', error);
+    process.exit(1);
   }
-});
+}
 
-module.exports = router;
+main();

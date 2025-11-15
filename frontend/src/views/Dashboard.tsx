@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   LineChart,
@@ -16,14 +16,160 @@ import {
   Legend,
 } from 'recharts';
 import GlassCard from '../components/UI/GlassCard';
-import { riskTimelineData, anomalyTypes, mockEvents, totalAnomalies, riskBreakdown, mockUsers } from '../data/mockData';
+import { apiService } from '../services/apiService';
+import { socketService } from '../services/socketService';
+import type { User, TimelineData, AnomalyType, Event } from '../data/mockData';
 
 const Dashboard = React.memo(() => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [timeline, setTimeline] = useState<TimelineData[]>([]);
+  const [anomalies, setAnomalies] = useState<AnomalyType[]>([]);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [breakdown, setBreakdown] = useState({ high: 0, medium: 0, low: 0 });
+  const [kpis, setKPIs] = useState({
+    overallRiskScore: 0,
+    activeUsers: 0,
+    suspiciousUsers: 0,
+    totalEventsProcessed: 0,
+    totalAnomalies: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+
+  // Fetch all data
+  const fetchData = useCallback(async () => {
+    try {
+      const [usersData, timelineData, anomaliesData, eventsData, breakdownData, kpisData] = await Promise.all([
+        apiService.getUsers(),
+        apiService.getRiskTimeline(),
+        apiService.getAnomalyBreakdown(),
+        apiService.getEvents(),
+        apiService.getRiskBreakdown(),
+        apiService.getKPIs()
+      ]);
+      
+      setUsers(usersData);
+      setTimeline(timelineData);
+      setAnomalies(anomaliesData);
+      setEvents(eventsData);
+      setBreakdown(breakdownData);
+      setKPIs(kpisData);
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Error loading dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Refresh specific data sections
+  const refreshKPIs = useCallback(async () => {
+    try {
+      const kpisData = await apiService.getKPIs();
+      setKPIs(kpisData);
+    } catch (error) {
+      console.error('Error refreshing KPIs:', error);
+    }
+  }, []);
+
+  const refreshUsers = useCallback(async () => {
+    try {
+      const usersData = await apiService.getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error refreshing users:', error);
+    }
+  }, []);
+
+  const refreshTimeline = useCallback(async () => {
+    try {
+      const timelineData = await apiService.getRiskTimeline();
+      setTimeline(timelineData);
+    } catch (error) {
+      console.error('Error refreshing timeline:', error);
+    }
+  }, []);
+
+  const refreshBreakdown = useCallback(async () => {
+    try {
+      const [breakdownData, anomaliesData] = await Promise.all([
+        apiService.getRiskBreakdown(),
+        apiService.getAnomalyBreakdown()
+      ]);
+      setBreakdown(breakdownData);
+      setAnomalies(anomaliesData);
+    } catch (error) {
+      console.error('Error refreshing breakdown:', error);
+    }
+  }, []);
+
+  const refreshEvents = useCallback(async () => {
+    try {
+      const eventsData = await apiService.getEvents();
+      setEvents(eventsData);
+    } catch (error) {
+      console.error('Error refreshing events:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initial data fetch
+    fetchData();
+
+    // Connect socket
+    socketService.connect();
+
+    // Set up real-time event listeners
+    const handleNewAlert = (alertData: any) => {
+      console.log('New alert received:', alertData);
+      // Refresh all relevant data
+      refreshKPIs();
+      refreshUsers();
+      refreshTimeline();
+      refreshBreakdown();
+      refreshEvents();
+      
+      // Show notification or toast if desired
+      setLastUpdate(new Date());
+    };
+
+    const handleRiskUpdate = (updateData: any) => {
+      console.log('Risk score updated:', updateData);
+      refreshKPIs();
+      refreshUsers();
+      refreshTimeline();
+      refreshBreakdown();
+    };
+
+    const handleNewEvent = (eventData: any) => {
+      console.log('New event processed:', eventData);
+      refreshKPIs();
+      refreshEvents();
+    };
+
+    socketService.on('new_alert', handleNewAlert);
+    socketService.on('risk_score_update', handleRiskUpdate);
+    socketService.on('new_event', handleNewEvent);
+
+    // Periodic refresh every 30 seconds as fallback
+    const interval = setInterval(() => {
+      refreshKPIs();
+      refreshTimeline();
+    }, 30000);
+
+    return () => {
+      socketService.off('new_alert', handleNewAlert);
+      socketService.off('risk_score_update', handleRiskUpdate);
+      socketService.off('new_event', handleNewEvent);
+      clearInterval(interval);
+    };
+  }, [fetchData, refreshKPIs, refreshUsers, refreshTimeline, refreshBreakdown, refreshEvents]);
+
   const topRiskyUsers = useMemo(() => {
-    return [...mockUsers]
+    return [...users]
       .sort((a, b) => b.riskScore - a.riskScore)
       .slice(0, 5);
-  }, []);
+  }, [users]);
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -49,155 +195,135 @@ const Dashboard = React.memo(() => {
     return 'shadow-lg shadow-green-500/50';
   };
 
+  const getEmptyMessage = (dataType: string) => (
+    <div className="text-center py-8 text-gray-400">
+      <p className="text-lg mb-2">No {dataType} Available</p>
+      <p className="text-sm">Data will appear here once events are processed through ML</p>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-gray-400">Loading dashboard...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-32 pb-12 px-6 max-w-7xl mx-auto space-y-8">
-      {/* New KPI Strip */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <GlassCard>
-          <div className="text-center">
-            <p className="text-black text-sm mb-2">Overall Risk Score</p>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className="text-5xl font-bold text-black"
-            >
-              {/* Placeholder - will be replaced with dynamic data */}
-              --
-            </motion.div>
-            <p className="text-black text-xs mt-2">Company-level</p>
-          </div>
-        </GlassCard>
-
-        <GlassCard>
-          <div className="text-center">
-            <p className="text-black text-sm mb-2">Active Users</p>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.1 }}
-              className="text-5xl font-bold text-black"
-            >
-              {/* Placeholder - will be replaced with dynamic data */}
-              --
-            </motion.div>
-            <p className="text-black text-xs mt-2">Currently active</p>
-          </div>
-        </GlassCard>
-
-        <GlassCard>
-          <div className="text-center">
-            <p className="text-black text-sm mb-2">Suspicious Users</p>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
-              className="text-5xl font-bold text-black"
-            >
-              {/* Placeholder - will be replaced with dynamic data */}
-              --
-            </motion.div>
-            <p className="text-black text-xs mt-2">Flagged for review</p>
-          </div>
-        </GlassCard>
-
-        <GlassCard>
-          <div className="text-center">
-            <p className="text-black text-sm mb-2">Events Processed</p>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
-              className="text-5xl font-bold text-black"
-            >
-              {/* Placeholder - will be replaced with dynamic data */}
-              --
-            </motion.div>
-            <p className="text-black text-xs mt-2">Total events</p>
-          </div>
-        </GlassCard>
+      {/* Connection Status Indicator */}
+      <div className="flex justify-between items-center mb-4">
+        <div className="flex items-center space-x-2 text-sm text-gray-400">
+          <div className={`w-2 h-2 rounded-full ${socketService.isConnected() ? 'bg-green-400' : 'bg-red-400'}`} />
+          <span>{socketService.isConnected() ? 'Live Updates Active' : 'Reconnecting...'}</span>
+        </div>
+        <div className="text-xs text-gray-500">
+          Last updated: {lastUpdate.toLocaleTimeString()}
+        </div>
       </div>
 
-      {/* KPI and Risk Breakdown */}
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <GlassCard>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Overall Risk Score</h3>
+            <p className="text-3xl font-bold text-black">{kpis.overallRiskScore}</p>
+            <p className="text-xs text-gray-500 mt-1">Company-level</p>
+          </GlassCard>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <GlassCard>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Active Users</h3>
+            <p className="text-3xl font-bold text-black">{kpis.activeUsers}</p>
+            <p className="text-xs text-gray-500 mt-1">Currently active</p>
+          </GlassCard>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <GlassCard>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Suspicious Users</h3>
+            <p className="text-3xl font-bold text-black">{kpis.suspiciousUsers}</p>
+            <p className="text-xs text-gray-500 mt-1">Flagged for review</p>
+          </GlassCard>
+        </motion.div>
+
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}>
+          <GlassCard>
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Events Processed</h3>
+            <p className="text-3xl font-bold text-black">{kpis.totalEventsProcessed.toLocaleString()}</p>
+            <p className="text-xs text-gray-500 mt-1">Total events</p>
+          </GlassCard>
+        </motion.div>
+      </div>
+
+      {/* Total Anomalies and Risk Breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <GlassCard className="lg:col-span-1" glow>
-          <div className="text-center">
-            <p className="text-black text-sm mb-2">Total Anomalies</p>
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-              className="text-6xl font-bold text-black"
-            >
-              {totalAnomalies}
-            </motion.div>
-            <p className="text-black text-xs mt-2">Detected in last 24h</p>
-          </div>
+        <GlassCard>
+          <h3 className="text-lg font-semibold text-black mb-4">Total Anomalies</h3>
+          <p className="text-5xl font-bold text-black text-center">{kpis.totalAnomalies}</p>
+          <p className="text-sm text-gray-400 text-center mt-2">Total detected</p>
         </GlassCard>
 
-<GlassCard className="lg:col-span-2">
-  <h3 className="text-lg font-semibold mb-6 text-black">Risk Breakdown</h3>
-  
-  {/* Percentages Above Bar */}
-  <div className="flex w-full mb-1 text-sm font-bold">
-    <div className="text-red-400 text-center" style={{ width: `${riskBreakdown.high}%` }}>
-      {riskBreakdown.high > 0 ? `${riskBreakdown.high}%` : ''}
-    </div>
-    <div className="text-yellow-400 text-center" style={{ width: `${riskBreakdown.medium}%` }}>
-      {riskBreakdown.medium > 0 ? `${riskBreakdown.medium}%` : ''}
-    </div>
-    <div className="text-green-400 text-center" style={{ width: `${riskBreakdown.low}%` }}>
-      {riskBreakdown.low > 0 ? `${riskBreakdown.low}%` : ''}
-    </div>
-  </div>
+        <GlassCard className="lg:col-span-2">
+          <h3 className="text-lg font-semibold mb-6 text-black">Risk Breakdown</h3>
+          
+          {/* Percentages Above Bar */}
+          <div className="flex w-full mb-1 text-sm font-bold">
+            <div className="text-red-400 text-center" style={{ width: `${breakdown.high}%` }}>
+              {breakdown.high > 0 ? `${breakdown.high}%` : ''}
+            </div>
+            <div className="text-yellow-400 text-center" style={{ width: `${breakdown.medium}%` }}>
+              {breakdown.medium > 0 ? `${breakdown.medium}%` : ''}
+            </div>
+            <div className="text-green-400 text-center" style={{ width: `${breakdown.low}%` }}>
+              {breakdown.low > 0 ? `${breakdown.low}%` : ''}
+            </div>
+          </div>
 
-  {/* Combined Single Bar Display */}
-  <div className="h-4 rounded-full bg-gray-300/50 flex overflow-hidden">
-    {/* High Risk Segment (Red) */}
-    <motion.div
-      initial={{ width: 0 }}
-      animate={{ width: `${riskBreakdown.high}%` }}
-      transition={{ duration: 1, delay: 0.2 }}
-      // Changed from 'bg-gradient-to-r from-red-600 to-red-400' to solid 'bg-red-500'
-      className="h-full bg-red-500 shadow-lg shadow-red-500/50"
-      style={{ minWidth: riskBreakdown.high > 0 ? '5px' : '0' }}
-    />
-    {/* Medium Risk Segment (Yellow) */}
-    <motion.div
-      initial={{ width: 0 }}
-      animate={{ width: `${riskBreakdown.medium}%` }}
-      transition={{ duration: 1, delay: 0.4 }}
-      // Changed from 'bg-gradient-to-r from-yellow-600 to-yellow-400' to solid 'bg-yellow-500'
-      className="h-full bg-yellow-500 shadow-lg shadow-yellow-500/50"
-      style={{ minWidth: riskBreakdown.medium > 0 ? '5px' : '0' }}
-    />
-    {/* Low Risk Segment (Green) */}
-    <motion.div
-      initial={{ width: 0 }}
-      animate={{ width: `${riskBreakdown.low}%` }}
-      transition={{ duration: 1, delay: 0.6 }}
-      // Changed from 'bg-gradient-to-r from-green-600 to-green-400' to solid 'bg-green-500'
-      className="h-full bg-green-500 shadow-lg shadow-green-500/50"
-      style={{ minWidth: riskBreakdown.low > 0 ? '5px' : '0' }}
-    />
-  </div>
-  
-  {/* Legend Below Bar */}
-  <div className="flex justify-start space-x-6 mt-4 text-xs text-black">
-    <div className="flex items-center space-x-1">
-      <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
-      <span>High Risk</span>
-    </div>
-    <div className="flex items-center space-x-1">
-      <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block" />
-      <span>Medium Risk</span>
-    </div>
-    <div className="flex items-center space-x-1">
-      <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
-      <span>Low Risk</span>
-    </div>
-  </div>
-</GlassCard>
+          {/* Combined Single Bar Display */}
+          <div className="h-4 rounded-full bg-gray-300/50 flex overflow-hidden">
+            {/* High Risk Segment (Red) */}
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${breakdown.high}%` }}
+              transition={{ duration: 1, delay: 0.2 }}
+              className="h-full bg-red-500 shadow-lg shadow-red-500/50"
+              style={{ minWidth: breakdown.high > 0 ? '5px' : '0' }}
+            />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${breakdown.medium}%` }}
+              transition={{ duration: 1, delay: 0.4 }}
+              className="h-full bg-yellow-500 shadow-lg shadow-yellow-500/50"
+              style={{ minWidth: breakdown.medium > 0 ? '5px' : '0' }}
+            />
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${breakdown.low}%` }}
+              transition={{ duration: 1, delay: 0.6 }}
+              className="h-full bg-green-500 shadow-lg shadow-green-500/50"
+              style={{ minWidth: breakdown.low > 0 ? '5px' : '0' }}
+            />
+          </div>
+          
+          {/* Legend Below Bar */}
+          <div className="flex justify-start space-x-6 mt-4 text-xs text-black">
+            <div className="flex items-center space-x-1">
+              <span className="w-3 h-3 rounded-full bg-red-400 inline-block" />
+              <span>High Risk</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block" />
+              <span>Medium Risk</span>
+            </div>
+            <div className="flex items-center space-x-1">
+              <span className="w-3 h-3 rounded-full bg-green-400 inline-block" />
+              <span>Low Risk</span>
+            </div>
+          </div>
+        </GlassCard>
       </div>
 
       {/* Primary Content Grid */}
@@ -206,7 +332,7 @@ const Dashboard = React.memo(() => {
         <GlassCard>
           <h3 className="text-lg font-semibold mb-4 text-black">Risk Timeline</h3>
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={riskTimelineData}>
+            <AreaChart data={timeline}>
               <defs>
                 <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6b7280" stopOpacity={0.3} />
@@ -236,32 +362,36 @@ const Dashboard = React.memo(() => {
         {/* Top 5 Risky Users */}
         <GlassCard>
           <h3 className="text-lg font-semibold mb-4 text-black">Top 5 Risky Users</h3>
-          <div className="space-y-3">
-            {topRiskyUsers.map((user, index) => (
-              <motion.div
-                key={user.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="glass rounded-lg p-4 border border-gray-300/20 hover:border-gray-400/40 transition-all"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center font-bold text-white">
-                      {user.avatar} 
+          {topRiskyUsers.length > 0 ? (
+            <div className="space-y-3">
+              {topRiskyUsers.map((user, index) => (
+                <motion.div
+                  key={user.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="glass rounded-lg p-4 border border-gray-300/20 hover:border-gray-400/40 transition-all"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-500 flex items-center justify-center font-bold text-white">
+                        {user.avatar} 
+                      </div>
+                      <div>
+                        <p className="font-semibold text-black">{user.name}</p>
+                        <p className="text-xs text-black">{user.department}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-semibold text-black">{user.name}</p>
-                      <p className="text-xs text-black">{user.department}</p>
+                    <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
+                      {user.riskScore} 
                     </div>
                   </div>
-                  <div className={`text-3xl font-bold ${getRiskColor(user.riskScore)}`}>
-                    {user.riskScore} 
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            getEmptyMessage('users')
+          )}
         </GlassCard>
       </div>
 
@@ -270,79 +400,87 @@ const Dashboard = React.memo(() => {
         {/* Anomalies Donut Chart */}
         <GlassCard>
           <h3 className="text-lg font-semibold mb-4 text-black">Anomaly Distribution</h3>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={anomalyTypes}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percentage }) => `${name}: ${percentage}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="count"
-              >
-                {anomalyTypes.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                contentStyle={{
-                  background: 'rgba(245, 245, 240, 0.95)',
-                  border: '1px solid rgba(150, 150, 150, 0.3)',
-                  borderRadius: '8px',
-                  color: '#000000',
-                }}
-              />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
+          {anomalies.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={anomalies}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ type, percentage }) => `${type}: ${percentage}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="count"
+                >
+                  {anomalies.map((entry: any, index: number) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: 'rgba(245, 245, 240, 0.95)',
+                    border: '1px solid rgba(150, 150, 150, 0.3)',
+                    borderRadius: '8px',
+                    color: '#000000',
+                  }}
+                />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            getEmptyMessage('anomalies')
+          )}
         </GlassCard>
 
         {/* Events Table */}
         <GlassCard>
           <h3 className="text-lg font-semibold mb-4 text-black">Recent Events</h3>
-          <div className="overflow-y-auto max-h-[300px]">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-300/20">
-                  <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
-                  <th className="text-left py-2 px-3 text-sm text-black">User</th>
-                  <th className="text-left py-2 px-3 text-sm text-black">Type</th>
-                  <th className="text-left py-2 px-3 text-sm text-black">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {mockEvents.map((event) => (
-                  <motion.tr
-                    key={event.id}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="border-b border-gray-300/10 hover:bg-gray-300/10 transition-colors"
-                  >
-                    <td className="py-3 px-3 text-sm text-black">
-                      {new Date(event.timestamp).toLocaleString()}
-                    </td>
-                    <td className="py-3 px-3 text-sm text-black">{event.user}</td>
-                    <td className="py-3 px-3 text-sm text-black">{event.anomalyType}</td>
-                    <td className="py-3 px-3 text-sm">
-                      <span
-                        className={`px-2 py-1 rounded text-xs ${
-                          event.status === 'resolved'
-                            ? 'text-green-400'
-                            : event.status === 'escalated'
-                            ? 'text-red-400'
-                            : 'text-yellow-400'
-                        }`}
-                      >
-                        {event.status}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {events.length > 0 ? (
+            <div className="overflow-y-auto max-h-[300px]">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-300/20">
+                    <th className="text-left py-2 px-3 text-sm text-black">Timestamp</th>
+                    <th className="text-left py-2 px-3 text-sm text-black">User</th>
+                    <th className="text-left py-2 px-3 text-sm text-black">Type</th>
+                    <th className="text-left py-2 px-3 text-sm text-black">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {events.map((event: any) => (
+                    <motion.tr
+                      key={event.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="border-b border-gray-300/10 hover:bg-gray-300/10 transition-colors"
+                    >
+                      <td className="py-3 px-3 text-sm text-black">
+                        {new Date(event.timestamp).toLocaleString()}
+                      </td>
+                      <td className="py-3 px-3 text-sm text-black">{event.user}</td>
+                      <td className="py-3 px-3 text-sm text-black">{event.anomalyType}</td>
+                      <td className="py-3 px-3 text-sm">
+                        <span
+                          className={`px-2 py-1 rounded text-xs ${
+                            event.status === 'resolved'
+                              ? 'text-green-400'
+                              : event.status === 'escalated'
+                              ? 'text-red-400'
+                              : 'text-yellow-400'
+                          }`}
+                        >
+                          {event.status}
+                        </span>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            getEmptyMessage('events')
+          )}
         </GlassCard>
       </div>
     </div>

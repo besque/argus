@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import GlassCard from '../../components/UI/GlassCard';
-import { mockUsers } from '../../data/mockData';
+import { apiService } from '../../services/apiService';
 import { User } from '../../data/mockData';
 
 interface UserDetailsProps {
@@ -9,8 +9,26 @@ interface UserDetailsProps {
 }
 
 const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
-  const top5Users = mockUsers.slice(0, 5);
-  const allUsers = mockUsers;
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUsers = useCallback(async () => {
+    try {
+      const usersData = await apiService.getUsers();
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  const top5Users = [...users].sort((a, b) => b.riskScore - a.riskScore).slice(0, 5);
+  const allUsers = users;
 
   const getRiskColor = (score: number) => {
     if (score >= 70) return 'border-red-500/50 shadow-red-500/30';
@@ -18,13 +36,22 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
     return 'border-green-500/50 shadow-green-500/30';
   };
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-xl text-gray-400">Loading users...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-32 pb-12 px-6 max-w-7xl mx-auto space-y-8">
       {/* Top 5 Horizontal Strip */}
       <div>
-        <h2 className="text-2xl font-bold mb-6 text-black neon-text">Top 5 Users</h2>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          {top5Users.map((user, index) => (
+        <h2 className="text-2xl font-bold mb-6 text-black neon-text">Top 5 Risky Users</h2>
+        {top5Users.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {top5Users.map((user, index) => (
             <motion.div
               key={user.id}
               initial={{ opacity: 0, y: 20 }}
@@ -49,14 +76,20 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
               </GlassCard>
             </motion.div>
           ))}
-        </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-lg">No users available</p>
+          </div>
+        )}
       </div>
 
       {/* All Users Grid */}
       <div>
         <h2 className="text-2xl font-bold mb-6 text-black neon-text">All Users</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {allUsers.map((user, index) => (
+        {allUsers.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {allUsers.map((user, index) => (
             <motion.div
               key={user.id}
               initial={{ opacity: 0, scale: 0.8 }}
@@ -80,7 +113,12 @@ const UserDetails = React.memo<UserDetailsProps>(({ onUserSelect }) => {
               </GlassCard>
             </motion.div>
           ))}
-        </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-400">
+            <p className="text-lg">No users available</p>
+          </div>
+        )}
       </div>
     </div>
   );
