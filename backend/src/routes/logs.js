@@ -27,58 +27,72 @@ router.post('/', async (req, res, next) => {
     
     const mlResult = await mlService.analyze(eventData, eventData.user);
     
-    if (mlResult.severity === 'medium' || mlResult.severity === 'high') {
-      const alert = new Alert({
-        event_id: event._id,
-        user: event.user,
-        risk_score: mlResult.risk_score,
-        severity: mlResult.severity,
-        anomaly_type: mlResult.anomaly_type,
-        explanation: mlResult.explanation,
-        scores: mlResult.scores,
-        created_at: new Date()
-      });
+    if (mlResult) {
+      event.risk_score = mlResult.risk_score;
+      event.severity = mlResult.severity;
+      await event.save();
       
-      await alert.save();
-      
-      await User.findOneAndUpdate(
-        { _id: event.user },
-        {
-          $set: { 
-            last_seen: event.ts,
-            current_risk: Math.max(mlResult.risk_score, 0)
-          },
-          $addToSet: { devices: event.device }
-        },
-        { upsert: true, new: true }
-      );
-      
-      const now = new Date();
-      now.setMinutes(0, 0, 0);
-      
-      await RiskHistory.findOneAndUpdate(
-        { user: event.user, ts: now },
-        {
-          $inc: {
-            [`${mlResult.severity}_count`]: 1
-          },
-          $max: { avg_risk: mlResult.risk_score }
-        },
-        { upsert: true }
-      );
-      
-      if (req.app.get('io')) {
-        req.app.get('io').emit('new_alert', {
-          id: alert._id,
-          user: alert.user,
-          severity: alert.severity,
-          anomaly_type: alert.anomaly_type,
-          created_at: alert.created_at
+      if (mlResult.severity === 'medium' || mlResult.severity === 'high') {
+        const alert = new Alert({
+          event_id: event._id,
+          user: event.user,
+          risk_score: mlResult.risk_score,
+          severity: mlResult.severity,
+          anomaly_type: mlResult.anomaly_type,
+          explanation: mlResult.explanation,
+          scores: mlResult.scores,
+          created_at: new Date()
         });
+        
+        await alert.save();
+        
+        await User.findOneAndUpdate(
+          { _id: event.user },
+          {
+            $set: { 
+              last_seen: event.ts,
+              current_risk: Math.max(mlResult.risk_score, 0)
+            },
+            $addToSet: { devices: event.device }
+          },
+          { upsert: true, new: true }
+        );
+        
+        const now = new Date();
+        now.setMinutes(0, 0, 0);
+        
+        await RiskHistory.findOneAndUpdate(
+          { user: event.user, ts: now },
+          {
+            $inc: {
+              [`${mlResult.severity}_count`]: 1
+            },
+            $max: { avg_risk: mlResult.risk_score }
+          },
+          { upsert: true }
+        );
+        
+        if (req.app.get('io')) {
+          req.app.get('io').emit('new_alert', {
+            id: alert._id,
+            user: alert.user,
+            severity: alert.severity,
+            anomaly_type: alert.anomaly_type,
+            created_at: alert.created_at
+          });
+        }
       }
+    } else {
+      event.risk_score = 0;
+      event.severity = 'low';
+      await event.save();
     }
     
-    res.status(201).json({ success: true, event_id: event._id, ml_result: mlResult });
+    res.status(201).json({ 
+      success: true, 
+      event_id: event._id, 
+      ml_result: mlResult 
+    });
   } catch (err) {
     next(err);
   }

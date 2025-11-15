@@ -19,10 +19,9 @@ router.get('/', async (req, res, next) => {
     const last24h = new Date(now - 24 * 60 * 60 * 1000);
     const last7d = new Date(now - 7 * 24 * 60 * 60 * 1000);
     
-    const totalAlerts = await Alert.countDocuments({ created_at: { $gte: last24h } });
-    
+    const totalAlerts = await Alert.countDocuments({});
+    const totalEvents = await Event.countDocuments({});    
     const severityDist = await Alert.aggregate([
-      { $match: { created_at: { $gte: last24h } } },
       { $group: { _id: '$severity', count: { $sum: 1 } } }
     ]);
     
@@ -41,9 +40,7 @@ router.get('/', async (req, res, next) => {
       }},
       { $sort: { _id: 1 } }
     ]);
-    
-    const totalEvents = await Event.countDocuments({ ts: { $gte: last24h } });
-    
+        
     const data = {
       total_alerts: totalAlerts,
       total_events: totalEvents,

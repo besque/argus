@@ -14,6 +14,8 @@ const eventSchema = new mongoose.Schema({
   dst_ip: { type: String },
   device: { type: String },
   size: { type: Number },
+  risk_score: { type: Number, min: 0, max: 1 },
+  severity: { type: String, enum: ['low', 'medium', 'high'] },
   raw: { type: mongoose.Schema.Types.Mixed }
 }, { timestamps: true });
 
