@@ -1,4 +1,16 @@
-# Logs
+# -------------------------------------------------------------
+# CORE DEPENDENCIES & BUILD OUTPUT (MUST BE IGNORED)
+# -------------------------------------------------------------
+node_modules/
+dist/
+build/
+dist-ssr/
+coverage/
+
+# -------------------------------------------------------------
+# LOGS & CACHE
+# -------------------------------------------------------------
+# npm/yarn/pnpm logs
 logs
 *.log
 npm-debug.log*
@@ -7,19 +19,22 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Vite, Storybook, etc. cache
+.vite
+.parcel-cache
 *.local
 
-# Editor directories and files
+# -------------------------------------------------------------
+# EDITOR & OS FILES
+# -------------------------------------------------------------
+# VS Code
 .vscode/*
 !.vscode/extensions.json
-.idea
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
 
+# IDEs (WebStorm, IntelliJ, etc.)
+.idea
+
+# Windows/macOS temporary files
+*.suo
+*.sw?

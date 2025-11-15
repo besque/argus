@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Monoton&display=swap');
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -43,5 +46,13 @@
   }
 
   .neon-glow {
+  }
+
+  .argus-logo {
+    font-family: 'Monoton', sans-serif;
+    font-size: 2rem;
+    font-weight: 400;
+    color: #0f172a;
+    letter-spacing: 0.05em;
   }
 }
