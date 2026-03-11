@@ -17,6 +17,12 @@ Argus is a full-stack **User & Entity Behavior Analytics (UEBA)** system designe
 * User detail page with **radar (OCEAN) chart**, **AI summary**, **recent logs**, and **timeline navigation**
 * **Socket.IO** for real-time alerts
 * Efficient **pagination** and **partial-load** API endpoints
+  
+## Screenshots
+![uebademo](https://github.com/user-attachments/assets/551ea862-fc9d-48e5-aea9-e3416e60b6d4)
+![uebademo2](https://github.com/user-attachments/assets/a763a63b-c2d2-4828-a3a4-2c902b290a32)
+![uebademo3](https://github.com/user-attachments/assets/d667d865-fc23-4de5-98a1-1bc3bf1686e6)
+
 
 ## Architecture Overview
 
